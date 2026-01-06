@@ -12,6 +12,7 @@ import SP_design_audit from '../system-prompts/design-audit-prompt.md' with { ty
 import SP_brainstorm from '../system-prompts/brainstorm-prompt.md' with { type: 'text' }
 import SP_builder from '../system-prompts/builder-prompt.md' with { type: 'text' }
 import SP_diagram_consolidate from '../system-prompts/diagram-consolidate-prompt.md' with { type: 'text' }
+import SP_tdd_coordinator from '../system-prompts/tdd-coordinator-prompt.md' with { type: 'text' }
 import SP_prompt_improver from '../system-prompts/prompt-improver-prompt.md' with { type: 'text' }
 import SP_rails_backlog_coordinator from '../system-prompts/rails-backlog-coordinator-prompt.md' with { type: 'text' }
 import SP_diagram_all from '../system-prompts/diagram-all-prompt.md' with { type: 'text' }
@@ -36,6 +37,7 @@ import ST_diagram_topic from '../settings/diagram-topic.settings.json' with { ty
 import ST_design_audit from '../settings/design-audit.settings.json' with { type: 'json' }
 import ST_planner from '../settings/planner.settings.json' with { type: 'json' }
 import ST_designer from '../settings/designer.settings.json' with { type: 'json' }
+import ST_tdd_coordinator from '../settings/tdd-coordinator.settings.json' with { type: 'json' }
 import ST_rails_backlog from '../settings/rails-backlog.settings.json' with { type: 'json' }
 import ST_diagram_consolidate from '../settings/diagram-consolidate.settings.json' with { type: 'json' }
 import MCP_brainstorm from '../settings/brainstorm.mcp.json' with { type: 'json' }
@@ -48,6 +50,7 @@ import MCP_builder from '../settings/builder.mcp.json' with { type: 'json' }
 import MCP_plan_coordinator from '../settings/plan-coordinator.mcp.json' with { type: 'json' }
 import MCP_planner from '../settings/planner.mcp.json' with { type: 'json' }
 import MCP_update_claudemd from '../settings/update-claudemd.mcp.json' with { type: 'json' }
+import MCP_tdd_coordinator from '../settings/tdd-coordinator.mcp.json' with { type: 'json' }
 
 export const SYSTEM_PROMPTS = {
   'brainstorm': SP_brainstorm,
@@ -66,6 +69,7 @@ export const SYSTEM_PROMPTS = {
   'rails-backlog-coordinator': SP_rails_backlog_coordinator,
   'refactor': SP_refactor,
   'riff': SP_riff,
+  'tdd-coordinator': SP_tdd_coordinator,
   'update-claudemd': SP_update_claudemd
 };
 export const PROMPTS = {
@@ -90,6 +94,7 @@ export const SETTINGS = {
   'planner': ST_planner,
   'rails-backlog': ST_rails_backlog,
   'refactor': ST_refactor,
+  'tdd-coordinator': ST_tdd_coordinator,
   'update-claudemd': ST_update_claudemd
 };
 export const MCP = {
@@ -102,5 +107,6 @@ export const MCP = {
   'planner': MCP_planner,
   'rails-backlog': MCP_rails_backlog,
   'refactor': MCP_refactor,
+  'tdd-coordinator': MCP_tdd_coordinator,
   'update-claudemd': MCP_update_claudemd
 };

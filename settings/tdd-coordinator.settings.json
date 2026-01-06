@@ -1,0 +1,19 @@
+{
+	"permissions": {
+		"defaultMode": "default"
+	},
+	"systemPromptFiles": ["system-prompts/tdd-coordinator-prompt.md"],
+	"hooks": {
+		"UserPromptSubmit": [
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "echo \"TDD Coordinator: You orchestrate TDD cycles (Red-Green-Refactor). Propose test cases, coordinate sub-agents, adapt the plan based on insights. NEVER implement directly.\""
+					}
+				]
+			}
+		]
+	}
+}
