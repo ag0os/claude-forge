@@ -1,5 +1,5 @@
 {
-  "name": "claude-workshop-live",
+  "name": "claude-forge",
   "module": "index.ts",
   "type": "module",
   "private": true,

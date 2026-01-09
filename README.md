@@ -1,4 +1,4 @@
-# claude-workshop-live
+# claude-forge
 
 A collection of TypeScript agents and utilities for enhancing Claude Code CLI functionality with custom configurations, MCP integrations, and specialized workflows.
 
@@ -31,8 +31,8 @@ npm install -g @anthropic-ai/claude-code
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/johnlindquist/claude-workshop-live.git
-cd claude-workshop-live
+git clone https://github.com/johnlindquist/claude-forge.git
+cd claude-forge
 ```
 
 2. **Install dependencies:**
@@ -83,7 +83,7 @@ After compilation, add the `bin` directory to your PATH to use agents as global 
 
 ```bash
 # Add to your shell profile (~/.bashrc, ~/.zshrc, ~/.bash_profile, etc.)
-export PATH="$PATH:/path/to/claude-workshop-live/bin"
+export PATH="$PATH:/path/to/claude-forge/bin"
 
 # Reload your shell configuration
 source ~/.zshrc  # or ~/.bashrc, depending on your shell
