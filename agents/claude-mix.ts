@@ -1,7 +1,7 @@
 #!/usr/bin/env -S bun run
 import { parseArgs } from "node:util";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { $ } from "bun";
+import { getClaudeExecutablePath } from "../lib/claude";
 import systemPrompt from "../prompts/claude-mix.md" with { type: "text" };
 
 const args = parseArgs({
@@ -15,40 +15,19 @@ if (!userPrompt) {
 	process.exit(1);
 }
 
-const response = query({
-	prompt: userPrompt,
-	options: {
-		systemPrompt: systemPrompt,
-		mcpServers: {},
-
-		allowedTools: ["Bash(repomix:*)"],
-		pathToClaudeCodeExecutable: await (async () => {
-			// Check for CLAUDE_PATH environment variable first
-			if (process.env.CLAUDE_PATH) {
-				return process.env.CLAUDE_PATH;
-			}
-			try {
-				const cmd = process.platform === "win32" ? "where" : "which";
-				const p = (await $`${cmd} claude`.text()).trim();
-				if (!p) {
-					throw new Error("Claude CLI not found in PATH");
-				}
-				return p;
-			} catch {
-				console.error("Error: Claude CLI not found in PATH");
-				console.error(
-					"Please install it: npm install -g @anthropic-ai/claude-code",
-				);
-				console.error(
-					"Or set CLAUDE_PATH environment variable to your Claude executable",
-				);
-				process.exit(1);
-			}
-		})(),
-	},
-});
-
 try {
+	const claudePath = await getClaudeExecutablePath();
+
+	const response = query({
+		prompt: userPrompt,
+		options: {
+			systemPrompt: systemPrompt,
+			mcpServers: {},
+			tools: ["Bash(repomix:*)"],
+			pathToClaudeCodeExecutable: claudePath,
+		},
+	});
+
 	for await (const chunk of response) {
 		if (
 			chunk.type === "assistant" &&

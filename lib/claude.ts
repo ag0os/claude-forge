@@ -30,6 +30,42 @@ import type { ClaudeFlags } from "./claude-flags.types";
 import { buildClaudeFlags } from "./flags";
 
 /**
+ * Get the path to the Claude CLI executable.
+ *
+ * Checks CLAUDE_PATH environment variable first, then falls back to
+ * finding claude in the system PATH.
+ *
+ * @returns Promise resolving to the path of the Claude executable
+ * @throws Error if Claude CLI is not found
+ *
+ * @example
+ * ```ts
+ * const claudePath = await getClaudeExecutablePath();
+ * // Use with SDK: pathToClaudeCodeExecutable: claudePath
+ * ```
+ */
+export async function getClaudeExecutablePath(): Promise<string> {
+	// Check for CLAUDE_PATH environment variable first
+	if (process.env.CLAUDE_PATH) {
+		return process.env.CLAUDE_PATH;
+	}
+
+	try {
+		const cmd = process.platform === "win32" ? "where" : "which";
+		const result = (await $`${cmd} claude`.text()).trim();
+		if (!result) {
+			throw new Error("Claude CLI not found in PATH");
+		}
+		return result;
+	} catch {
+		throw new Error(
+			"Claude CLI not found. Install with: npm install -g @anthropic-ai/claude-code\n" +
+				"Or set CLAUDE_PATH environment variable to your Claude executable path.",
+		);
+	}
+}
+
+/**
  * Get the Claude projects path for the current working directory
  * @returns The path to the Claude project directory for the current pwd
  */

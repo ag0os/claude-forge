@@ -8,6 +8,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^2.0.25"
+    "@anthropic-ai/claude-code": "^2.0.72"
   }
 }
