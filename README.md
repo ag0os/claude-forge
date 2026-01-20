@@ -175,6 +175,45 @@ Each agent is a specialized Claude instance with custom configurations:
 - **print-key** - Print GEMINI_API_KEY (helper utility)
 - **jsonl-formatter** - JSONL parsing utilities and jq recipes
 
+## Forge-Tasks: Hybrid Task Management
+
+A file-based task management system combining CLI commands with programmatic sub-agents for coordinated workflows. Tasks are stored as human-readable markdown files with YAML frontmatter.
+
+### Key Features
+
+- **File-based storage**: Tasks are markdown files in `forge/tasks/`, easy to edit manually or commit to git
+- **Full CLI interface**: Create, list, view, edit, delete, and search tasks from the command line
+- **Programmatic API**: TypeScript `TaskManager` class for building custom workflows
+- **Sub-agents**: Specialized `forge-task-manager` and `forge-task-worker` agents for automated task workflows
+- **Multiple output formats**: Human-readable, plain text (for scripts), and JSON
+
+### Quick Example
+
+```bash
+# Initialize forge-tasks in your project
+forge-tasks init
+
+# Create a task with acceptance criteria
+forge-tasks create "Implement user auth" \
+  --description "Add JWT-based authentication" \
+  --priority high \
+  --ac "Login returns JWT token" \
+  --ac "Protected routes require valid token"
+
+# List tasks, filter by status
+forge-tasks list --status todo --priority high
+
+# View task details (use --plain for scripts/agents)
+forge-tasks view TASK-001
+
+# Update status and check off acceptance criteria
+forge-tasks edit TASK-001 --status in-progress --check-ac 1
+```
+
+For complete documentation including programmatic usage and sub-agent integration, see **[docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)**.
+
+---
+
 ## Diagram Agents
 
 - Run project-wide diagrams:

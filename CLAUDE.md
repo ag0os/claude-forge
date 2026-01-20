@@ -17,6 +17,8 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun format` - Format code with Biome
 - `bun check` - Run Biome checks without fixes
 - `bun lint:fix` - Apply unsafe fixes with Biome
+- `bun run compile:forge-tasks` - Compile forge-tasks CLI to binary
+- `bun test:forge-tasks` - Run forge-tasks tests
 
 ### Agent Commands
 - `bun run agents/contain.ts` - Launch Claude with contained settings
@@ -43,6 +45,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `scripts/` - Build and development utilities
 - `bin/` - Compiled binaries (generated)
 - `docs/` - Documentation for framework features
+- `forge-tasks/` - Hybrid task management system (CLI + sub-agents). See [docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)
 
 ### Key Libraries
 - `@anthropic-ai/claude-code` - Official Claude Code SDK
