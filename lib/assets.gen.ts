@@ -7,8 +7,10 @@ import SP_planner from '../system-prompts/planner-prompt.md' with { type: 'text'
 import SP_orient from '../system-prompts/orient-prompt.md' with { type: 'text' }
 import SP_designer from '../system-prompts/designer-prompt.md' with { type: 'text' }
 import SP_riff from '../system-prompts/riff-prompt.md' with { type: 'text' }
+import SP_forge_task_worker from '../system-prompts/forge-task-worker-prompt.md' with { type: 'text' }
 import SP_diagram_topic from '../system-prompts/diagram-topic-prompt.md' with { type: 'text' }
 import SP_design_audit from '../system-prompts/design-audit-prompt.md' with { type: 'text' }
+import SP_forge_task_manager from '../system-prompts/forge-task-manager-prompt.md' with { type: 'text' }
 import SP_brainstorm from '../system-prompts/brainstorm-prompt.md' with { type: 'text' }
 import SP_builder from '../system-prompts/builder-prompt.md' with { type: 'text' }
 import SP_diagram_consolidate from '../system-prompts/diagram-consolidate-prompt.md' with { type: 'text' }
@@ -33,19 +35,23 @@ import ST_builder from '../settings/builder.settings.json' with { type: 'json' }
 import ST_plan_coordinator from '../settings/plan-coordinator.settings.json' with { type: 'json' }
 import ST_brainstorm from '../settings/brainstorm.settings.json' with { type: 'json' }
 import ST_diagram_all from '../settings/diagram-all.settings.json' with { type: 'json' }
+import ST_forge_task_worker from '../settings/forge-task-worker.settings.json' with { type: 'json' }
 import ST_diagram_topic from '../settings/diagram-topic.settings.json' with { type: 'json' }
 import ST_design_audit from '../settings/design-audit.settings.json' with { type: 'json' }
 import ST_planner from '../settings/planner.settings.json' with { type: 'json' }
 import ST_designer from '../settings/designer.settings.json' with { type: 'json' }
 import ST_tdd_coordinator from '../settings/tdd-coordinator.settings.json' with { type: 'json' }
+import ST_forge_task_manager from '../settings/forge-task-manager.settings.json' with { type: 'json' }
 import ST_rails_backlog from '../settings/rails-backlog.settings.json' with { type: 'json' }
 import ST_diagram_consolidate from '../settings/diagram-consolidate.settings.json' with { type: 'json' }
+import MCP_forge_task_worker from '../settings/forge-task-worker.mcp.json' with { type: 'json' }
 import MCP_brainstorm from '../settings/brainstorm.mcp.json' with { type: 'json' }
 import MCP_designer from '../settings/designer.mcp.json' with { type: 'json' }
 import MCP_orient from '../settings/orient.mcp.json' with { type: 'json' }
 import MCP_contain from '../settings/contain.mcp.json' with { type: 'json' }
 import MCP_rails_backlog from '../settings/rails-backlog.mcp.json' with { type: 'json' }
 import MCP_refactor from '../settings/refactor.mcp.json' with { type: 'json' }
+import MCP_forge_task_manager from '../settings/forge-task-manager.mcp.json' with { type: 'json' }
 import MCP_builder from '../settings/builder.mcp.json' with { type: 'json' }
 import MCP_plan_coordinator from '../settings/plan-coordinator.mcp.json' with { type: 'json' }
 import MCP_planner from '../settings/planner.mcp.json' with { type: 'json' }
@@ -62,6 +68,8 @@ export const SYSTEM_PROMPTS = {
   'diagram-topic': SP_diagram_topic,
   'feature': SP_feature,
   'fix': SP_fix,
+  'forge-task-manager': SP_forge_task_manager,
+  'forge-task-worker': SP_forge_task_worker,
   'orient': SP_orient,
   'plan-coordinator': SP_plan_coordinator,
   'planner': SP_planner,
@@ -89,6 +97,8 @@ export const SETTINGS = {
   'diagram-all': ST_diagram_all,
   'diagram-consolidate': ST_diagram_consolidate,
   'diagram-topic': ST_diagram_topic,
+  'forge-task-manager': ST_forge_task_manager,
+  'forge-task-worker': ST_forge_task_worker,
   'orient': ST_orient,
   'plan-coordinator': ST_plan_coordinator,
   'planner': ST_planner,
@@ -102,6 +112,8 @@ export const MCP = {
   'builder': MCP_builder,
   'contain': MCP_contain,
   'designer': MCP_designer,
+  'forge-task-manager': MCP_forge_task_manager,
+  'forge-task-worker': MCP_forge_task_worker,
   'orient': MCP_orient,
   'plan-coordinator': MCP_plan_coordinator,
   'planner': MCP_planner,
