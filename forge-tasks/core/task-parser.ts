@@ -127,8 +127,20 @@ function parseStringArray(value: unknown): string[] {
 }
 
 /**
+ * Remove AC markers and their content from a string
+ */
+function stripAcBlocks(content: string): string {
+	const acRegex = new RegExp(
+		`${escapeRegex(AC_BEGIN_MARKER)}[\\s\\S]*?${escapeRegex(AC_END_MARKER)}`,
+		"g",
+	);
+	return content.replace(acRegex, "").trim();
+}
+
+/**
  * Extract a section from markdown content by header name
  * Returns the content between the header and the next header (or end of content)
+ * Note: AC blocks are stripped from the section content to prevent duplication
  */
 function extractSection(
 	content: string,
@@ -145,7 +157,8 @@ function extractSection(
 	const match = normalized.match(regex);
 	if (!match?.[1]) return undefined;
 
-	const sectionContent = match[1].trim();
+	// Strip AC blocks from section content to prevent duplication on re-serialization
+	const sectionContent = stripAcBlocks(match[1]);
 	return sectionContent || undefined;
 }
 

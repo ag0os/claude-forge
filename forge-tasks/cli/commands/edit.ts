@@ -54,6 +54,14 @@ function collectIndices(value: string, previous: number[]): number[] {
 }
 
 /**
+ * Process escaped newlines in string values
+ * Converts literal \n sequences to actual newlines
+ */
+function processEscapedNewlines(value: string): string {
+	return value.replace(/\\n/g, "\n");
+}
+
+/**
  * Track which fields were changed for output
  */
 interface FieldChange {
@@ -189,7 +197,7 @@ export function registerCommand(program: Command): void {
 						oldValue: existingTask.description ? "existing" : "",
 						newValue: "updated",
 					});
-					updateInput.description = options.description;
+					updateInput.description = processEscapedNewlines(options.description);
 				}
 
 				if (options.status) {
@@ -260,14 +268,14 @@ export function registerCommand(program: Command): void {
 					updateInput.dueDate = dueDate;
 				}
 
-				// Plan handling
+				// Plan handling (process escaped newlines for better CLI experience)
 				if (options.plan) {
 					changes.push({
 						field: "plan",
 						oldValue: existingTask.implementationPlan ? "existing" : "",
 						newValue: "replaced",
 					});
-					updateInput.implementationPlan = options.plan;
+					updateInput.implementationPlan = processEscapedNewlines(options.plan);
 				} else if (options.appendPlan) {
 					const currentPlan = existingTask.implementationPlan || "";
 					const separator = currentPlan ? "\n\n" : "";
@@ -277,17 +285,21 @@ export function registerCommand(program: Command): void {
 						newValue: "",
 					});
 					updateInput.implementationPlan =
-						currentPlan + separator + options.appendPlan;
+						currentPlan +
+						separator +
+						processEscapedNewlines(options.appendPlan);
 				}
 
-				// Notes handling
+				// Notes handling (process escaped newlines for better CLI experience)
 				if (options.notes) {
 					changes.push({
 						field: "notes",
 						oldValue: existingTask.implementationNotes ? "existing" : "",
 						newValue: "replaced",
 					});
-					updateInput.implementationNotes = options.notes;
+					updateInput.implementationNotes = processEscapedNewlines(
+						options.notes,
+					);
 				} else if (options.appendNotes) {
 					const currentNotes = existingTask.implementationNotes || "";
 					const separator = currentNotes ? "\n\n" : "";
@@ -297,7 +309,9 @@ export function registerCommand(program: Command): void {
 						newValue: "",
 					});
 					updateInput.implementationNotes =
-						currentNotes + separator + options.appendNotes;
+						currentNotes +
+						separator +
+						processEscapedNewlines(options.appendNotes);
 				}
 
 				// Labels (add/remove)
