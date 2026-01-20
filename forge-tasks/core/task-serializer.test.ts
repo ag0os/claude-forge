@@ -3,9 +3,9 @@
  * Covers output format, YAML frontmatter, sections, and round-trip consistency
  */
 
-import { describe, test, expect } from "bun:test";
-import { serializeTask } from "./task-serializer.ts";
+import { describe, expect, test } from "bun:test";
 import { parseTask } from "./task-parser.ts";
+import { serializeTask } from "./task-serializer.ts";
 import type { Task } from "./task-types.ts";
 
 describe("serializeTask", () => {
@@ -118,8 +118,7 @@ describe("serializeTask", () => {
 
 		test("formats Implementation Plan with ## header", () => {
 			const task = createBaseTask();
-			task.implementationPlan =
-				"1. First step\n2. Second step\n3. Third step";
+			task.implementationPlan = "1. First step\n2. Second step\n3. Third step";
 
 			const output = serializeTask(task);
 
@@ -304,13 +303,14 @@ describe("serializeTask", () => {
 			const parsed = parseTask(serialized);
 
 			expect(parsed.createdAt.toISOString()).toBe(
-				original.createdAt.toISOString()
+				original.createdAt.toISOString(),
 			);
 			expect(parsed.updatedAt.toISOString()).toBe(
-				original.updatedAt.toISOString()
+				original.updatedAt.toISOString(),
 			);
 			expect(parsed.dueDate?.toISOString()).toBe(
-				original.dueDate!.toISOString()
+				// biome-ignore lint/style/noNonNullAssertion: Test data is known to have dueDate
+				original.dueDate!.toISOString(),
 			);
 		});
 

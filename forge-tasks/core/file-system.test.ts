@@ -3,20 +3,20 @@
  * Covers file I/O operations with temp directory isolation
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, readdir, stat } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-	ensureForgeDirectory,
-	loadConfig,
-	saveConfig,
-	listTaskFiles,
-	readTaskFile,
-	saveTaskFile,
 	deleteTaskFile,
+	ensureForgeDirectory,
 	getTaskFilename,
+	listTaskFiles,
+	loadConfig,
 	parseTaskIdFromFilename,
+	readTaskFile,
+	saveConfig,
+	saveTaskFile,
 } from "./file-system.ts";
 import type { ForgeTasksConfig } from "./task-types.ts";
 
@@ -417,11 +417,9 @@ describe("getTaskFilename", () => {
 
 describe("parseTaskIdFromFilename", () => {
 	test("extracts ID from standard filename", () => {
-		expect(parseTaskIdFromFilename("TASK-001 - Test Task.md")).toBe(
-			"TASK-001"
-		);
+		expect(parseTaskIdFromFilename("TASK-001 - Test Task.md")).toBe("TASK-001");
 		expect(parseTaskIdFromFilename("TASK-42 - Another Task.md")).toBe(
-			"TASK-42"
+			"TASK-42",
 		);
 	});
 
@@ -448,17 +446,17 @@ describe("parseTaskIdFromFilename", () => {
 
 	test("handles complex titles", () => {
 		expect(
-			parseTaskIdFromFilename("TASK-001 - Fix the bug in user auth.md")
+			parseTaskIdFromFilename("TASK-001 - Fix the bug in user auth.md"),
 		).toBe("TASK-001");
-		expect(parseTaskIdFromFilename("TASK-999 - A Very Long Task Title.md")).toBe(
-			"TASK-999"
-		);
+		expect(
+			parseTaskIdFromFilename("TASK-999 - A Very Long Task Title.md"),
+		).toBe("TASK-999");
 	});
 
 	test("handles zero-padded IDs", () => {
 		expect(parseTaskIdFromFilename("TASK-0001 - Padded.md")).toBe("TASK-0001");
 		expect(parseTaskIdFromFilename("TASK-00042 - More Padding.md")).toBe(
-			"TASK-00042"
+			"TASK-00042",
 		);
 	});
 });

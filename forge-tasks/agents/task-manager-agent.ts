@@ -15,7 +15,11 @@
  *   bun run forge-tasks/agents/task-manager-agent.ts "Create tasks for..." # with prompt
  */
 
-import { buildClaudeFlags, getPositionals, spawnClaudeAndWait } from "../../lib";
+import {
+	buildClaudeFlags,
+	getPositionals,
+	spawnClaudeAndWait,
+} from "../../lib";
 import forgeTaskManagerMcp from "../../settings/forge-task-manager.mcp.json" with {
 	type: "json",
 };

@@ -3,15 +3,15 @@
  * Covers sequential ID generation, prefix handling, zero-padding, and collision detection
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-	generateNextId,
-	parseIdNumber,
-	formatId,
 	extractIdNumbers,
+	formatId,
+	generateNextId,
 	isValidId,
+	parseIdNumber,
 } from "./id-generator.ts";
-import type { Task, ForgeTasksConfig } from "./task-types.ts";
+import type { ForgeTasksConfig, Task } from "./task-types.ts";
 
 describe("parseIdNumber", () => {
 	test("parses numeric part from standard ID", () => {

@@ -1,20 +1,24 @@
 import type { Command } from "commander";
 import { TaskManager } from "../../core/task-manager";
-import type { TaskListFilter, TaskStatus, TaskPriority } from "../../core/task-types";
+import type {
+	TaskListFilter,
+	TaskPriority,
+	TaskStatus,
+} from "../../core/task-types";
 
 /**
  * Map CLI status shorthand to TaskStatus
  */
 function normalizeStatus(status: string): TaskStatus | null {
 	const statusMap: Record<string, TaskStatus> = {
-		"todo": "To Do",
+		todo: "To Do",
 		"to-do": "To Do",
 		"to do": "To Do",
 		"in-progress": "In Progress",
-		"inprogress": "In Progress",
+		inprogress: "In Progress",
 		"in progress": "In Progress",
-		"done": "Done",
-		"blocked": "Blocked",
+		done: "Done",
+		blocked: "Blocked",
 	};
 	return statusMap[status.toLowerCase()] ?? null;
 }
@@ -35,8 +39,14 @@ export function registerCommand(program: Command): void {
 		.command("list")
 		.alias("ls")
 		.description("List all tasks")
-		.option("-s, --status <status>", "Filter by status: todo, in-progress, done, blocked")
-		.option("-p, --priority <priority>", "Filter by priority: high, medium, low")
+		.option(
+			"-s, --status <status>",
+			"Filter by status: todo, in-progress, done, blocked",
+		)
+		.option(
+			"-p, --priority <priority>",
+			"Filter by priority: high, medium, low",
+		)
 		.option("-a, --assignee <name>", "Filter by assignee")
 		.option("-l, --label <label>", "Filter by label")
 		.option("--ready", "Show only tasks with no dependencies")
@@ -98,7 +108,7 @@ export function registerCommand(program: Command): void {
 				} else if (globalOptions.plain) {
 					for (const task of tasks) {
 						console.log(
-							`${task.id} | ${task.status} | ${task.priority || "-"} | ${task.title}`
+							`${task.id} | ${task.status} | ${task.priority || "-"} | ${task.title}`,
 						);
 					}
 				} else {
@@ -110,7 +120,10 @@ export function registerCommand(program: Command): void {
 
 					// Calculate column widths dynamically
 					const idWidth = Math.max(8, ...tasks.map((t) => t.id.length));
-					const statusWidth = Math.max(11, ...tasks.map((t) => t.status.length));
+					const statusWidth = Math.max(
+						11,
+						...tasks.map((t) => t.status.length),
+					);
 					const priorityWidth = 9;
 
 					// Print header

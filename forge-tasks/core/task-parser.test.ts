@@ -3,7 +3,7 @@
  * Covers YAML frontmatter parsing, section extraction, and acceptance criteria parsing
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { parseTask } from "./task-parser.ts";
 
 describe("parseTask", () => {
@@ -223,7 +223,7 @@ Some plan here.
 `;
 			const task = parseTask(content);
 			expect(task.description).toBe(
-				"This is the task description.\nIt can span multiple lines."
+				"This is the task description.\nIt can span multiple lines.",
 			);
 		});
 
@@ -246,7 +246,7 @@ Brief description.
 `;
 			const task = parseTask(content);
 			expect(task.implementationPlan).toBe(
-				"1. First step\n2. Second step\n3. Third step"
+				"1. First step\n2. Second step\n3. Third step",
 			);
 		});
 
@@ -268,7 +268,7 @@ Found an edge case to handle.
 `;
 			const task = parseTask(content);
 			expect(task.implementationNotes).toBe(
-				"Started working on this.\nFound an edge case to handle."
+				"Started working on this.\nFound an edge case to handle.",
 			);
 		});
 
@@ -482,7 +482,7 @@ Some more custom text.
 
 			expect(task.rawContent).toContain("## Custom Section");
 			expect(task.rawContent).toContain(
-				"This is custom content that should be preserved."
+				"This is custom content that should be preserved.",
 			);
 		});
 

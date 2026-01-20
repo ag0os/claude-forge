@@ -1,20 +1,25 @@
 import type { Command } from "commander";
 import { TaskManager } from "../../core/task-manager";
-import type { TaskListFilter, TaskStatus, TaskPriority, Task } from "../../core/task-types";
+import type {
+	Task,
+	TaskListFilter,
+	TaskPriority,
+	TaskStatus,
+} from "../../core/task-types";
 
 /**
  * Map CLI status shorthand to TaskStatus
  */
 function normalizeStatus(status: string): TaskStatus | null {
 	const statusMap: Record<string, TaskStatus> = {
-		"todo": "To Do",
+		todo: "To Do",
 		"to-do": "To Do",
 		"to do": "To Do",
 		"in-progress": "In Progress",
-		"inprogress": "In Progress",
+		inprogress: "In Progress",
 		"in progress": "In Progress",
-		"done": "Done",
-		"blocked": "Blocked",
+		done: "Done",
+		blocked: "Blocked",
 	};
 	return statusMap[status.toLowerCase()] ?? null;
 }
@@ -77,7 +82,9 @@ function calculateRelevance(task: Task, query: string): number {
 		.join(" ")
 		.toLowerCase();
 
-	const occurrences = (allText.match(new RegExp(escapeRegExp(queryLower), "g")) || []).length;
+	const occurrences = (
+		allText.match(new RegExp(escapeRegExp(queryLower), "g")) || []
+	).length;
 	score += Math.min(occurrences, 5); // Cap occurrence bonus at 5
 
 	return score;
@@ -95,8 +102,14 @@ export function registerCommand(program: Command): void {
 		.command("search")
 		.description("Search tasks by query")
 		.argument("<query>", "Search query")
-		.option("-s, --status <status>", "Filter by status: todo, in-progress, done, blocked")
-		.option("-p, --priority <priority>", "Filter by priority: high, medium, low")
+		.option(
+			"-s, --status <status>",
+			"Filter by status: todo, in-progress, done, blocked",
+		)
+		.option(
+			"-p, --priority <priority>",
+			"Filter by priority: high, medium, low",
+		)
 		.option("-l, --label <label>", "Filter by label")
 		.option("--limit <number>", "Maximum number of results", "10")
 		.action(async (query, options) => {
@@ -142,7 +155,7 @@ export function registerCommand(program: Command): void {
 
 			// Parse limit
 			const limit = parseInt(options.limit, 10);
-			if (isNaN(limit) || limit < 1) {
+			if (Number.isNaN(limit) || limit < 1) {
 				const errorMsg = `Invalid limit: ${options.limit}. Must be a positive number`;
 				if (globalOptions.json) {
 					console.log(JSON.stringify({ error: errorMsg }, null, 2));
@@ -154,7 +167,10 @@ export function registerCommand(program: Command): void {
 
 			try {
 				// Search tasks using TaskManager
-				const tasks = await manager.search(query, Object.keys(filter).length > 0 ? filter : undefined);
+				const tasks = await manager.search(
+					query,
+					Object.keys(filter).length > 0 ? filter : undefined,
+				);
 
 				// Sort by relevance score (descending)
 				const scoredTasks = tasks.map((task) => ({
@@ -172,7 +188,7 @@ export function registerCommand(program: Command): void {
 				} else if (globalOptions.plain) {
 					for (const task of limitedTasks) {
 						console.log(
-							`${task.id} | ${task.status} | ${task.priority || "-"} | ${task.title}`
+							`${task.id} | ${task.status} | ${task.priority || "-"} | ${task.title}`,
 						);
 					}
 				} else {
@@ -182,12 +198,17 @@ export function registerCommand(program: Command): void {
 						return;
 					}
 
-					console.log(`Found ${limitedTasks.length} task(s) matching "${query}":`);
+					console.log(
+						`Found ${limitedTasks.length} task(s) matching "${query}":`,
+					);
 					console.log();
 
 					// Calculate column widths dynamically
 					const idWidth = Math.max(8, ...limitedTasks.map((t) => t.id.length));
-					const statusWidth = Math.max(11, ...limitedTasks.map((t) => t.status.length));
+					const statusWidth = Math.max(
+						11,
+						...limitedTasks.map((t) => t.status.length),
+					);
 					const priorityWidth = 9;
 
 					// Print header

@@ -2,7 +2,6 @@ import type { Command } from "commander";
 import { TaskManager } from "../../core/task-manager";
 import type {
 	AcceptanceCriterion,
-	Task,
 	TaskPriority,
 	TaskStatus,
 	TaskUpdateInput,
@@ -48,7 +47,7 @@ function collectStrings(value: string, previous: string[]): string[] {
  */
 function collectIndices(value: string, previous: number[]): number[] {
 	const num = parseInt(value, 10);
-	if (!isNaN(num)) {
+	if (!Number.isNaN(num)) {
 		return [...previous, num];
 	}
 	return previous;
@@ -85,7 +84,10 @@ export function registerCommand(program: Command): void {
 		// Basic fields
 		.option("-t, --title <title>", "Update title")
 		.option("-d, --description <text>", "Update description")
-		.option("-s, --status <status>", "Update status: todo, in-progress, done, blocked")
+		.option(
+			"-s, --status <status>",
+			"Update status: todo, in-progress, done, blocked",
+		)
 		.option("-p, --priority <priority>", "Update priority: high, medium, low")
 		.option("-a, --assignee <name>", "Update assignee")
 		.option("--due <date>", "Update due date (YYYY-MM-DD)")
@@ -95,50 +97,55 @@ export function registerCommand(program: Command): void {
 		.option("--notes <text>", "Set implementation notes (replaces existing)")
 		.option("--append-notes <text>", "Append to implementation notes")
 		// Labels (add/remove)
-		.option("--add-label <label>", "Add a label (can be used multiple times)", collectStrings, [])
+		.option(
+			"--add-label <label>",
+			"Add a label (can be used multiple times)",
+			collectStrings,
+			[],
+		)
 		.option(
 			"--remove-label <label>",
 			"Remove a label (can be used multiple times)",
 			collectStrings,
-			[]
+			[],
 		)
 		// Dependencies (add/remove)
 		.option(
 			"--add-dep <taskId>",
 			"Add a dependency (can be used multiple times)",
 			collectStrings,
-			[]
+			[],
 		)
 		.option(
 			"--remove-dep <taskId>",
 			"Remove a dependency (can be used multiple times)",
 			collectStrings,
-			[]
+			[],
 		)
 		// Acceptance criteria
 		.option(
 			"--add-ac <text>",
 			"Add acceptance criterion (can be used multiple times)",
 			collectStrings,
-			[]
+			[],
 		)
 		.option(
 			"--remove-ac <index>",
 			"Remove acceptance criterion by index (can be used multiple times)",
 			collectIndices,
-			[]
+			[],
 		)
 		.option(
 			"--check-ac <index>",
 			"Mark criterion as complete (can be used multiple times)",
 			collectIndices,
-			[]
+			[],
 		)
 		.option(
 			"--uncheck-ac <index>",
 			"Mark criterion as incomplete (can be used multiple times)",
 			collectIndices,
-			[]
+			[],
 		)
 		.action(async (taskId, options) => {
 			const projectRoot = process.cwd();
@@ -234,7 +241,7 @@ export function registerCommand(program: Command): void {
 
 				if (options.due) {
 					const dueDate = new Date(options.due);
-					if (isNaN(dueDate.getTime())) {
+					if (Number.isNaN(dueDate.getTime())) {
 						const errorMsg = `Invalid date format: ${options.due}. Use YYYY-MM-DD format.`;
 						if (globalOptions.json) {
 							console.log(JSON.stringify({ error: errorMsg }, null, 2));
@@ -269,7 +276,8 @@ export function registerCommand(program: Command): void {
 						oldValue: "",
 						newValue: "",
 					});
-					updateInput.implementationPlan = currentPlan + separator + options.appendPlan;
+					updateInput.implementationPlan =
+						currentPlan + separator + options.appendPlan;
 				}
 
 				// Notes handling
@@ -288,7 +296,8 @@ export function registerCommand(program: Command): void {
 						oldValue: "",
 						newValue: "",
 					});
-					updateInput.implementationNotes = currentNotes + separator + options.appendNotes;
+					updateInput.implementationNotes =
+						currentNotes + separator + options.appendNotes;
 				}
 
 				// Labels (add/remove)
@@ -336,12 +345,16 @@ export function registerCommand(program: Command): void {
 					// Remove dependencies first
 					for (const dep of removeDeps) {
 						const depUpper = dep.toUpperCase();
-						dependencies = dependencies.filter((d) => d.toUpperCase() !== depUpper);
+						dependencies = dependencies.filter(
+							(d) => d.toUpperCase() !== depUpper,
+						);
 					}
 
 					// Then add new dependencies
 					for (const dep of addDeps) {
-						if (!dependencies.some((d) => d.toUpperCase() === dep.toUpperCase())) {
+						if (
+							!dependencies.some((d) => d.toUpperCase() === dep.toUpperCase())
+						) {
 							dependencies.push(dep);
 						}
 					}
@@ -375,12 +388,18 @@ export function registerCommand(program: Command): void {
 					checkAcIndices.length > 0 ||
 					uncheckAcIndices.length > 0
 				) {
-					let criteria: AcceptanceCriterion[] = [...existingTask.acceptanceCriteria];
+					let criteria: AcceptanceCriterion[] = [
+						...existingTask.acceptanceCriteria,
+					];
 
 					// Remove criteria by index (sort in reverse to avoid index shifting issues)
-					const sortedRemoveIndices = [...removeAcIndices].sort((a, b) => b - a);
+					const sortedRemoveIndices = [...removeAcIndices].sort(
+						(a, b) => b - a,
+					);
 					for (const indexToRemove of sortedRemoveIndices) {
-						const criterionIndex = criteria.findIndex((c) => c.index === indexToRemove);
+						const criterionIndex = criteria.findIndex(
+							(c) => c.index === indexToRemove,
+						);
 						if (criterionIndex !== -1) {
 							criteria.splice(criterionIndex, 1);
 						}
@@ -452,7 +471,8 @@ export function registerCommand(program: Command): void {
 
 				// Check if any changes were requested
 				if (changes.length === 0) {
-					const errorMsg = "No changes specified. Use --help to see available options.";
+					const errorMsg =
+						"No changes specified. Use --help to see available options.";
 					if (globalOptions.json) {
 						console.log(JSON.stringify({ error: errorMsg }, null, 2));
 					} else {
@@ -483,7 +503,9 @@ export function registerCommand(program: Command): void {
 						console.log(`assignee=${updateInput.assignee}`);
 					}
 					if (updateInput.dueDate) {
-						console.log(`dueDate=${updateInput.dueDate.toISOString().split("T")[0]}`);
+						console.log(
+							`dueDate=${updateInput.dueDate.toISOString().split("T")[0]}`,
+						);
 					}
 					if (updateInput.labels) {
 						console.log(`labels=${updateInput.labels.join(",")}`);

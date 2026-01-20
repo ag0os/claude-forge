@@ -1,5 +1,5 @@
+import * as readline from "node:readline";
 import type { Command } from "commander";
-import * as readline from "readline";
 import { TaskManager } from "../../core/task-manager";
 
 /**
@@ -52,11 +52,13 @@ export function registerCommand(program: Command): void {
 				// Confirm deletion unless --force is specified
 				if (!options.force) {
 					const confirmed = await promptConfirm(
-						`Delete task ${task.id}: "${task.title}"?`
+						`Delete task ${task.id}: "${task.title}"?`,
 					);
 					if (!confirmed) {
 						if (globalOptions.json) {
-							console.log(JSON.stringify({ cancelled: true, id: task.id }, null, 2));
+							console.log(
+								JSON.stringify({ cancelled: true, id: task.id }, null, 2),
+							);
 						} else if (globalOptions.plain) {
 							console.log("cancelled");
 						} else {
@@ -79,8 +81,8 @@ export function registerCommand(program: Command): void {
 								title: task.title,
 							},
 							null,
-							2
-						)
+							2,
+						),
 					);
 				} else if (globalOptions.plain) {
 					console.log(`deleted ${task.id}`);

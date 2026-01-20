@@ -29,10 +29,7 @@ export function parseIdNumber(id: string, prefix: string): number | null {
 	const trimmedPrefix = prefix.trim();
 
 	// Build case-insensitive regex: ^PREFIX-(\d+)$
-	const pattern = new RegExp(
-		`^${escapeRegex(trimmedPrefix)}-(\\d+)$`,
-		"i"
-	);
+	const pattern = new RegExp(`^${escapeRegex(trimmedPrefix)}-(\\d+)$`, "i");
 
 	const match = trimmedId.match(pattern);
 	if (!match || !match[1]) {
@@ -59,7 +56,7 @@ export function parseIdNumber(id: string, prefix: string): number | null {
 export function formatId(
 	prefix: string,
 	number: number,
-	zeroPadding?: number
+	zeroPadding?: number,
 ): string {
 	const trimmedPrefix = prefix.trim().toUpperCase();
 
@@ -96,7 +93,7 @@ export function formatId(
  */
 export function generateNextId(
 	config: ForgeTasksConfig,
-	existingTasks: Task[]
+	existingTasks: Task[],
 ): string {
 	const prefix = config.prefix || DEFAULT_PREFIX;
 	const zeroPadding = config.zeroPadding;

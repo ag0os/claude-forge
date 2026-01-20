@@ -18,7 +18,11 @@
  *   bun run forge-tasks/agents/task-worker-agent.ts              # interactive mode
  */
 
-import { buildClaudeFlags, getPositionals, spawnClaudeAndWait } from "../../lib";
+import {
+	buildClaudeFlags,
+	getPositionals,
+	spawnClaudeAndWait,
+} from "../../lib";
 import taskWorkerMcp from "../../settings/forge-task-worker.mcp.json" with {
 	type: "json",
 };

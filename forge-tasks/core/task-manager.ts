@@ -3,17 +3,6 @@
  * Orchestrates all core modules for task CRUD operations, search, and filtering
  */
 
-import type {
-	AcceptanceCriterion,
-	ForgeTasksConfig,
-	Task,
-	TaskCreateInput,
-	TaskListFilter,
-	TaskPriority,
-	TaskStatus,
-	TaskUpdateInput,
-} from "./task-types.ts";
-import { DEFAULT_CONFIG } from "./task-types.ts";
 import {
 	deleteTaskFile,
 	ensureForgeDirectory,
@@ -25,9 +14,19 @@ import {
 	saveConfig,
 	saveTaskFile,
 } from "./file-system.ts";
+import { generateNextId } from "./id-generator.ts";
 import { parseTask } from "./task-parser.ts";
 import { serializeTask } from "./task-serializer.ts";
-import { generateNextId } from "./id-generator.ts";
+import type {
+	AcceptanceCriterion,
+	ForgeTasksConfig,
+	Task,
+	TaskCreateInput,
+	TaskListFilter,
+	TaskStatus,
+	TaskUpdateInput,
+} from "./task-types.ts";
+import { DEFAULT_CONFIG } from "./task-types.ts";
 
 /**
  * TaskManager orchestrates all core modules for task management
@@ -91,13 +90,13 @@ export class TaskManager {
 		const now = new Date();
 
 		// Convert acceptance criteria strings to AcceptanceCriterion objects
-		const acceptanceCriteria: AcceptanceCriterion[] = (input.acceptanceCriteria ?? []).map(
-			(text, index) => ({
-				index: index + 1,
-				text,
-				checked: false,
-			})
-		);
+		const acceptanceCriteria: AcceptanceCriterion[] = (
+			input.acceptanceCriteria ?? []
+		).map((text, index) => ({
+			index: index + 1,
+			text,
+			checked: false,
+		}));
 
 		// Build the task object
 		const task: Task = {
@@ -153,7 +152,8 @@ export class TaskManager {
 			// Ensure arrays are properly handled
 			labels: input.labels ?? existingTask.labels,
 			dependencies: input.dependencies ?? existingTask.dependencies,
-			acceptanceCriteria: input.acceptanceCriteria ?? existingTask.acceptanceCriteria,
+			acceptanceCriteria:
+				input.acceptanceCriteria ?? existingTask.acceptanceCriteria,
 		};
 
 		// Check if title changed (affects filename)
@@ -258,8 +258,8 @@ export class TaskManager {
 				task.implementationNotes,
 			];
 
-			return searchableFields.some(
-				(field) => field && field.toLowerCase().includes(queryLower)
+			return searchableFields.some((field) =>
+				field?.toLowerCase().includes(queryLower),
 			);
 		});
 
@@ -327,7 +327,9 @@ export class TaskManager {
 	private matchesFilter(task: Task, filter: TaskListFilter): boolean {
 		// Check status
 		if (filter.status) {
-			const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+			const statuses = Array.isArray(filter.status)
+				? filter.status
+				: [filter.status];
 			if (!statuses.includes(task.status)) {
 				return false;
 			}
@@ -335,7 +337,9 @@ export class TaskManager {
 
 		// Check priority
 		if (filter.priority) {
-			const priorities = Array.isArray(filter.priority) ? filter.priority : [filter.priority];
+			const priorities = Array.isArray(filter.priority)
+				? filter.priority
+				: [filter.priority];
 			if (!task.priority || !priorities.includes(task.priority)) {
 				return false;
 			}

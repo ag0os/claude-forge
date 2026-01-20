@@ -1,6 +1,6 @@
 import type { Command } from "commander";
-import { TaskManager } from "../../core/task-manager";
 import { loadConfig } from "../../core/file-system";
+import { TaskManager } from "../../core/task-manager";
 
 export function registerCommand(program: Command): void {
 	program
@@ -26,15 +26,15 @@ export function registerCommand(program: Command): void {
 									"forge-tasks is already initialized. Use --force to reinitialize.",
 							},
 							null,
-							2
-						)
+							2,
+						),
 					);
 				} else if (globalOptions.plain) {
 					console.log("already_initialized");
 					console.log(`path=${projectRoot}`);
 				} else {
 					console.log(
-						"Warning: forge-tasks is already initialized in this directory"
+						"Warning: forge-tasks is already initialized in this directory",
 					);
 					console.log("Use --force to reinitialize");
 				}
@@ -58,8 +58,8 @@ export function registerCommand(program: Command): void {
 							config,
 						},
 						null,
-						2
-					)
+						2,
+					),
 				);
 			} else if (globalOptions.plain) {
 				console.log(`initialized ${projectRoot}`);

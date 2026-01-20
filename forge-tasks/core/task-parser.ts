@@ -18,7 +18,12 @@ import type {
 const AC_BEGIN_MARKER = "<!-- AC:BEGIN -->";
 const AC_END_MARKER = "<!-- AC:END -->";
 
-const VALID_STATUSES: TaskStatus[] = ["To Do", "In Progress", "Done", "Blocked"];
+const VALID_STATUSES: TaskStatus[] = [
+	"To Do",
+	"In Progress",
+	"Done",
+	"Blocked",
+];
 const VALID_PRIORITIES: TaskPriority[] = ["high", "medium", "low"];
 
 // ============================================================================
@@ -197,8 +202,7 @@ function parseLegacyAcceptanceCriteria(content: string): AcceptanceCriterion[] {
 	const normalized = normalizeLineEndings(content);
 
 	// Look for Acceptance Criteria section
-	const sectionRegex =
-		/## Acceptance Criteria\s*\n([\s\S]*?)(?=\n## |$)/i;
+	const sectionRegex = /## Acceptance Criteria\s*\n([\s\S]*?)(?=\n## |$)/i;
 	const sectionMatch = normalized.match(sectionRegex);
 
 	if (!sectionMatch?.[1]) return [];

@@ -1,13 +1,12 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
-
-import { registerCommand as registerInit } from "./commands/init";
 import { registerCommand as registerCreate } from "./commands/create";
-import { registerCommand as registerList } from "./commands/list";
-import { registerCommand as registerView } from "./commands/view";
-import { registerCommand as registerEdit } from "./commands/edit";
 import { registerCommand as registerDelete } from "./commands/delete";
+import { registerCommand as registerEdit } from "./commands/edit";
+import { registerCommand as registerInit } from "./commands/init";
+import { registerCommand as registerList } from "./commands/list";
 import { registerCommand as registerSearch } from "./commands/search";
+import { registerCommand as registerView } from "./commands/view";
 
 const program = new Command();
 

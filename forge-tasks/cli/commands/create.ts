@@ -10,10 +10,25 @@ export function registerCommand(program: Command): void {
 		.option("-d, --description <text>", "Task description")
 		.option("-p, --priority <level>", "Priority (high, medium, low)")
 		.option("-a, --assignee <name>", "Assignee")
-		.option("-l, --label <label>", "Add label (can be used multiple times)", collect, [])
+		.option(
+			"-l, --label <label>",
+			"Add label (can be used multiple times)",
+			collect,
+			[],
+		)
 		.option("--due <date>", "Due date (ISO format or relative like 2024-12-31)")
-		.option("--depends-on <taskId>", "Add dependency (can be used multiple times)", collect, [])
-		.option("--ac <criterion>", "Add acceptance criterion (can be used multiple times)", collect, [])
+		.option(
+			"--depends-on <taskId>",
+			"Add dependency (can be used multiple times)",
+			collect,
+			[],
+		)
+		.option(
+			"--ac <criterion>",
+			"Add acceptance criterion (can be used multiple times)",
+			collect,
+			[],
+		)
 		.option("--parent <taskId>", "Parent task ID")
 		.action(async (title, options) => {
 			const projectRoot = process.cwd();
@@ -23,7 +38,9 @@ export function registerCommand(program: Command): void {
 
 			// Validate priority if provided
 			if (options.priority && !isValidPriority(options.priority)) {
-				console.error(`Invalid priority: ${options.priority}. Must be one of: high, medium, low`);
+				console.error(
+					`Invalid priority: ${options.priority}. Must be one of: high, medium, low`,
+				);
 				process.exit(1);
 			}
 

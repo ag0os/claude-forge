@@ -17,7 +17,9 @@ const CONFIG_FILE = "forge.json";
  * @param projectRoot - The project root directory
  * @returns The path to forge/tasks/
  */
-export async function ensureForgeDirectory(projectRoot: string): Promise<string> {
+export async function ensureForgeDirectory(
+	projectRoot: string,
+): Promise<string> {
 	const forgeDir = join(projectRoot, FORGE_DIR);
 	const tasksDir = join(forgeDir, TASKS_DIR);
 
@@ -32,7 +34,9 @@ export async function ensureForgeDirectory(projectRoot: string): Promise<string>
  * @param projectRoot - The project root directory
  * @returns The configuration object or null if file doesn't exist
  */
-export async function loadConfig(projectRoot: string): Promise<ForgeTasksConfig | null> {
+export async function loadConfig(
+	projectRoot: string,
+): Promise<ForgeTasksConfig | null> {
 	const configPath = join(projectRoot, CONFIG_FILE);
 
 	try {
@@ -61,11 +65,11 @@ export async function loadConfig(projectRoot: string): Promise<ForgeTasksConfig 
  */
 export async function saveConfig(
 	projectRoot: string,
-	config: ForgeTasksConfig
+	config: ForgeTasksConfig,
 ): Promise<void> {
 	const configPath = join(projectRoot, CONFIG_FILE);
 	const content = JSON.stringify(config, null, 2);
-	await Bun.write(configPath, content + "\n");
+	await Bun.write(configPath, `${content}\n`);
 }
 
 /**
@@ -96,7 +100,7 @@ export async function listTaskFiles(projectRoot: string): Promise<string[]> {
  */
 export async function readTaskFile(
 	projectRoot: string,
-	filename: string
+	filename: string,
 ): Promise<string | null> {
 	const filePath = join(projectRoot, FORGE_DIR, TASKS_DIR, filename);
 
@@ -126,7 +130,7 @@ export async function readTaskFile(
 export async function saveTaskFile(
 	projectRoot: string,
 	filename: string,
-	content: string
+	content: string,
 ): Promise<void> {
 	// Ensure directory exists
 	await ensureForgeDirectory(projectRoot);
@@ -142,7 +146,7 @@ export async function saveTaskFile(
  */
 export async function deleteTaskFile(
 	projectRoot: string,
-	filename: string
+	filename: string,
 ): Promise<void> {
 	const filePath = join(projectRoot, FORGE_DIR, TASKS_DIR, filename);
 
@@ -159,6 +163,7 @@ export async function deleteTaskFile(
 /**
  * Characters that are not safe for filenames on common filesystems
  */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control characters to remove them from filenames
 const UNSAFE_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/g;
 
 /**
@@ -186,7 +191,7 @@ export function parseTaskIdFromFilename(filename: string): string | null {
 	// The ID is everything before " - "
 	const match = filename.match(/^([A-Za-z]+-\d+)\s+-\s+.+\.md$/);
 
-	if (match && match[1]) {
+	if (match?.[1]) {
 		return match[1];
 	}
 

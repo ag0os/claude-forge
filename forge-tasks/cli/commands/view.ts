@@ -58,7 +58,9 @@ function outputPlain(task: Task): void {
 		console.log(`dueDate=${task.dueDate.toISOString()}`);
 	}
 	// Strip AC markers from description for clean output
-	const cleanDescription = task.description ? stripAcMarkers(task.description) : "";
+	const cleanDescription = task.description
+		? stripAcMarkers(task.description)
+		: "";
 	console.log(`description=${cleanDescription.replace(/\n/g, "\\n")}`);
 	if (task.implementationPlan) {
 		// Escape newlines for plain format

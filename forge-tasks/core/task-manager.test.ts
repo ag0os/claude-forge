@@ -2,13 +2,13 @@
  * Tests for TaskManager class
  */
 
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TaskManager } from "./task-manager.ts";
-import { existsSync } from "node:fs";
-import type { ForgeTasksConfig, Task, TaskCreateInput, TaskUpdateInput } from "./task-types.ts";
+import type { ForgeTasksConfig } from "./task-types.ts";
 
 describe("TaskManager", () => {
 	let tempDir: string;
@@ -136,7 +136,9 @@ describe("TaskManager", () => {
 		it("should apply default priority from config", async () => {
 			await manager.init({ defaultPriority: "medium" });
 
-			const task = await manager.createTask({ title: "Task with default priority" });
+			const task = await manager.createTask({
+				title: "Task with default priority",
+			});
 
 			expect(task.priority).toBe("medium");
 		});
@@ -148,7 +150,9 @@ describe("TaskManager", () => {
 
 			// Verify task file exists in forge/tasks/
 			const tasksDir = join(tempDir, "forge", "tasks");
-			const taskFileExists = await Bun.file(join(tasksDir, "TASK-001 - Test Task.md")).exists();
+			const taskFileExists = await Bun.file(
+				join(tasksDir, "TASK-001 - Test Task.md"),
+			).exists();
 			expect(taskFileExists).toBe(true);
 		});
 	});
@@ -156,14 +160,17 @@ describe("TaskManager", () => {
 	describe("getTask", () => {
 		it("should retrieve a task by ID", async () => {
 			await manager.init();
-			await manager.createTask({ title: "My Task", description: "Description" });
+			await manager.createTask({
+				title: "My Task",
+				description: "Description",
+			});
 
 			const task = await manager.getTask("TASK-001");
 
 			expect(task).not.toBeNull();
-			expect(task!.id).toBe("TASK-001");
-			expect(task!.title).toBe("My Task");
-			expect(task!.description).toBe("Description");
+			expect(task?.id).toBe("TASK-001");
+			expect(task?.title).toBe("My Task");
+			expect(task?.description).toBe("Description");
 		});
 
 		it("should return null for non-existent task", async () => {
@@ -212,16 +219,20 @@ describe("TaskManager", () => {
 			// Small delay to ensure timestamp difference
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
-			const updated = await manager.updateTask("TASK-001", { title: "Updated" });
+			const updated = await manager.updateTask("TASK-001", {
+				title: "Updated",
+			});
 
-			expect(updated.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+			expect(updated.updatedAt.getTime()).toBeGreaterThan(
+				originalUpdatedAt.getTime(),
+			);
 		});
 
 		it("should throw error for non-existent task", async () => {
 			await manager.init();
 
 			await expect(
-				manager.updateTask("TASK-999", { title: "New Title" })
+				manager.updateTask("TASK-999", { title: "New Title" }),
 			).rejects.toThrow("Task not found: TASK-999");
 		});
 
@@ -234,7 +245,7 @@ describe("TaskManager", () => {
 			// Should be able to retrieve with new title
 			const task = await manager.getTask("TASK-001");
 			expect(task).not.toBeNull();
-			expect(task!.title).toBe("New Title");
+			expect(task?.title).toBe("New Title");
 
 			// Verify old file is removed by listing tasks
 			const tasks = await manager.listTasks();
@@ -277,7 +288,7 @@ describe("TaskManager", () => {
 			await manager.init();
 
 			await expect(manager.deleteTask("TASK-999")).rejects.toThrow(
-				"Task not found: TASK-999"
+				"Task not found: TASK-999",
 			);
 		});
 
@@ -310,7 +321,9 @@ describe("TaskManager", () => {
 			await manager.updateTask("TASK-001", { status: "In Progress" });
 			await manager.createTask({ title: "Task 2" });
 
-			const inProgressTasks = await manager.listTasks({ status: "In Progress" });
+			const inProgressTasks = await manager.listTasks({
+				status: "In Progress",
+			});
 
 			expect(inProgressTasks.length).toBe(1);
 			expect(inProgressTasks[0]?.id).toBe("TASK-001");
@@ -324,7 +337,9 @@ describe("TaskManager", () => {
 			await manager.updateTask("TASK-002", { status: "Done" });
 			await manager.createTask({ title: "Task 3" });
 
-			const tasks = await manager.listTasks({ status: ["In Progress", "Done"] });
+			const tasks = await manager.listTasks({
+				status: ["In Progress", "Done"],
+			});
 
 			expect(tasks.length).toBe(2);
 		});
@@ -368,7 +383,9 @@ describe("TaskManager", () => {
 			await manager.createTask({ title: "Task 2", dependencies: ["TASK-001"] });
 			await manager.createTask({ title: "Task 3" });
 
-			const independentTasks = await manager.listTasks({ hasNoDependencies: true });
+			const independentTasks = await manager.listTasks({
+				hasNoDependencies: true,
+			});
 
 			expect(independentTasks.length).toBe(2);
 		});
@@ -409,7 +426,10 @@ describe("TaskManager", () => {
 				title: "Task 1",
 				description: "This task involves authentication",
 			});
-			await manager.createTask({ title: "Task 2", description: "Database work" });
+			await manager.createTask({
+				title: "Task 2",
+				description: "Database work",
+			});
 
 			const results = await manager.search("authentication");
 
@@ -538,11 +558,11 @@ describe("TaskManager", () => {
 			// Step 3: Retrieve the task and verify persistence
 			const retrieved = await manager.getTask("LIFE-001");
 			expect(retrieved).not.toBeNull();
-			expect(retrieved!.id).toBe("LIFE-001");
-			expect(retrieved!.status).toBe("In Progress");
-			expect(retrieved!.assignee).toBe("developer");
-			expect(retrieved!.description).toBe("Testing the full lifecycle");
-			expect(retrieved!.implementationPlan).toBe("Step 1: Do X\nStep 2: Do Y");
+			expect(retrieved?.id).toBe("LIFE-001");
+			expect(retrieved?.status).toBe("In Progress");
+			expect(retrieved?.assignee).toBe("developer");
+			expect(retrieved?.description).toBe("Testing the full lifecycle");
+			expect(retrieved?.implementationPlan).toBe("Step 1: Do X\nStep 2: Do Y");
 
 			// Step 4: Complete the task
 			const completed = await manager.updateTask("LIFE-001", {
@@ -579,15 +599,15 @@ describe("TaskManager", () => {
 			// Should be able to retrieve the task without init()
 			const task = await newManager.getTask("PERSIST-001");
 			expect(task).not.toBeNull();
-			expect(task!.title).toBe("Persistent Task");
-			expect(task!.priority).toBe("high");
+			expect(task?.title).toBe("Persistent Task");
+			expect(task?.priority).toBe("high");
 
 			// Should be able to update
 			await newManager.updateTask("PERSIST-001", { status: "In Progress" });
 
 			// Original manager should see the update
 			const updatedTask = await manager.getTask("PERSIST-001");
-			expect(updatedTask!.status).toBe("In Progress");
+			expect(updatedTask?.status).toBe("In Progress");
 		});
 	});
 });
