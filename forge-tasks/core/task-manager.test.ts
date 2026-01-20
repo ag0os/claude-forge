@@ -33,7 +33,9 @@ describe("TaskManager", () => {
 			// Verify directories were created
 			const forgeDir = join(tempDir, "forge");
 			const tasksDir = join(tempDir, "forge", "tasks");
-			const configFile = Bun.file(join(tempDir, "forge.json"));
+			const configFile = Bun.file(
+				join(tempDir, "forge", "tasks", "config.json"),
+			);
 
 			expect(existsSync(forgeDir)).toBe(true);
 			expect(existsSync(tasksDir)).toBe(true);
@@ -502,17 +504,25 @@ describe("TaskManager", () => {
 			expect(task.id).toBe("TASK-001");
 
 			// Verify config was created
-			const configFile = Bun.file(join(tempDir, "forge.json"));
+			const configFile = Bun.file(
+				join(tempDir, "forge", "tasks", "config.json"),
+			);
 			expect(await configFile.exists()).toBe(true);
 		});
 
 		it("should load existing config on first operation", async () => {
-			// Create config manually
+			// Create config manually at the new location
 			const config: ForgeTasksConfig = {
 				prefix: "BUG",
 				zeroPadding: 4,
 			};
-			await Bun.write(join(tempDir, "forge.json"), JSON.stringify(config));
+			// Ensure directories exist first
+			const { mkdir } = await import("node:fs/promises");
+			await mkdir(join(tempDir, "forge", "tasks"), { recursive: true });
+			await Bun.write(
+				join(tempDir, "forge", "tasks", "config.json"),
+				JSON.stringify(config),
+			);
 
 			// Create task without init()
 			const task = await manager.createTask({ title: "Task" });

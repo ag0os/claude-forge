@@ -139,7 +139,7 @@ describe("loadConfig / saveConfig", () => {
 
 		await saveConfig(testDir, config);
 
-		const file = Bun.file(join(testDir, "forge.json"));
+		const file = Bun.file(join(testDir, "forge", "tasks", "config.json"));
 		const content = await file.text();
 
 		// Should be pretty-printed (contains newlines)

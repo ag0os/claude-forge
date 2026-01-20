@@ -22,7 +22,7 @@ forge-tasks init
 
 This creates:
 - `forge/tasks/` directory for task files
-- `forge.json` configuration file in project root
+- `forge/tasks/config.json` configuration file
 
 ### Create your first task
 
@@ -475,9 +475,9 @@ forge-tasks search "login" --plain
 
 ## Configuration
 
-Configuration is stored in `forge.json` at the project root.
+Configuration is stored in `forge/tasks/config.json`.
 
-### forge.json Options
+### config.json Options
 
 ```json
 {
@@ -835,9 +835,9 @@ After initialization:
 
 ```
 project/
-├── forge.json              # Configuration file
 └── forge/
     └── tasks/
+        ├── config.json               # Configuration file
         ├── TASK-001 - First task.md
         ├── TASK-002 - Second task.md
         └── TASK-003 - Third task.md

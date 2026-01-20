@@ -70,7 +70,9 @@ export function registerCommand(program: Command): void {
 			} else {
 				console.log(`Initialized forge-tasks in ${projectRoot}`);
 				console.log(`- Created forge/tasks/ directory`);
-				console.log(`- Created forge.json with prefix: ${config.prefix}`);
+				console.log(
+					`- Created forge/tasks/config.json with prefix: ${config.prefix}`,
+				);
 				if (config.projectName) {
 					console.log(`- Project name: ${config.projectName}`);
 				}

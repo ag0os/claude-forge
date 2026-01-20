@@ -10,7 +10,7 @@ import type { ForgeTasksConfig } from "./task-types.ts";
 // Directory constants
 const FORGE_DIR = "forge";
 const TASKS_DIR = "tasks";
-const CONFIG_FILE = "forge.json";
+const CONFIG_FILE = "config.json";
 
 /**
  * Ensure the forge/ and forge/tasks/ directories exist
@@ -30,14 +30,14 @@ export async function ensureForgeDirectory(
 }
 
 /**
- * Load forge.json configuration from project root
+ * Load configuration from forge/tasks/config.json
  * @param projectRoot - The project root directory
  * @returns The configuration object or null if file doesn't exist
  */
 export async function loadConfig(
 	projectRoot: string,
 ): Promise<ForgeTasksConfig | null> {
-	const configPath = join(projectRoot, CONFIG_FILE);
+	const configPath = join(projectRoot, FORGE_DIR, TASKS_DIR, CONFIG_FILE);
 
 	try {
 		const file = Bun.file(configPath);
@@ -59,7 +59,7 @@ export async function loadConfig(
 }
 
 /**
- * Save forge.json configuration to project root
+ * Save configuration to forge/tasks/config.json
  * @param projectRoot - The project root directory
  * @param config - The configuration object to save
  */
@@ -67,7 +67,9 @@ export async function saveConfig(
 	projectRoot: string,
 	config: ForgeTasksConfig,
 ): Promise<void> {
-	const configPath = join(projectRoot, CONFIG_FILE);
+	// Ensure directories exist before saving config
+	await ensureForgeDirectory(projectRoot);
+	const configPath = join(projectRoot, FORGE_DIR, TASKS_DIR, CONFIG_FILE);
 	const content = JSON.stringify(config, null, 2);
 	await Bun.write(configPath, `${content}\n`);
 }
