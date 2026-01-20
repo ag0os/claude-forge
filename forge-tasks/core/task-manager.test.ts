@@ -7,6 +7,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TaskManager } from "./task-manager.ts";
+import { existsSync } from "node:fs";
 import type { ForgeTasksConfig, Task, TaskCreateInput, TaskUpdateInput } from "./task-types.ts";
 
 describe("TaskManager", () => {
@@ -30,10 +31,12 @@ describe("TaskManager", () => {
 			expect(config.zeroPadding).toBe(3);
 
 			// Verify directories were created
-			const forgeDir = Bun.file(join(tempDir, "forge"));
-			const tasksDir = Bun.file(join(tempDir, "forge", "tasks"));
+			const forgeDir = join(tempDir, "forge");
+			const tasksDir = join(tempDir, "forge", "tasks");
 			const configFile = Bun.file(join(tempDir, "forge.json"));
 
+			expect(existsSync(forgeDir)).toBe(true);
+			expect(existsSync(tasksDir)).toBe(true);
 			expect(await configFile.exists()).toBe(true);
 		});
 
@@ -136,6 +139,17 @@ describe("TaskManager", () => {
 			const task = await manager.createTask({ title: "Task with default priority" });
 
 			expect(task.priority).toBe("medium");
+		});
+
+		it("should save task file in forge/tasks/ directory", async () => {
+			await manager.init();
+
+			await manager.createTask({ title: "Test Task" });
+
+			// Verify task file exists in forge/tasks/
+			const tasksDir = join(tempDir, "forge", "tasks");
+			const taskFileExists = await Bun.file(join(tasksDir, "TASK-001 - Test Task.md")).exists();
+			expect(taskFileExists).toBe(true);
 		});
 	});
 
@@ -484,6 +498,96 @@ describe("TaskManager", () => {
 			const task = await manager.createTask({ title: "Task" });
 
 			expect(task.id).toBe("BUG-0001");
+		});
+	});
+
+	describe("full lifecycle", () => {
+		it("should support complete Create -> Update -> Get -> Delete workflow", async () => {
+			await manager.init({ prefix: "LIFE" });
+
+			// Step 1: Create a task
+			const created = await manager.createTask({
+				title: "Lifecycle Test Task",
+				priority: "medium",
+				labels: ["test"],
+			});
+
+			expect(created.id).toBe("LIFE-001");
+			expect(created.status).toBe("To Do");
+			expect(created.title).toBe("Lifecycle Test Task");
+			expect(created.priority).toBe("medium");
+			expect(created.labels).toEqual(["test"]);
+
+			// Step 2: Update the task with description and implementation plan
+			const updated = await manager.updateTask("LIFE-001", {
+				status: "In Progress",
+				assignee: "developer",
+				description: "Testing the full lifecycle",
+				implementationPlan: "Step 1: Do X\nStep 2: Do Y",
+			});
+
+			expect(updated.id).toBe("LIFE-001");
+			expect(updated.status).toBe("In Progress");
+			expect(updated.assignee).toBe("developer");
+			expect(updated.description).toBe("Testing the full lifecycle");
+			expect(updated.implementationPlan).toBe("Step 1: Do X\nStep 2: Do Y");
+			// Original fields should be preserved
+			expect(updated.title).toBe("Lifecycle Test Task");
+			expect(updated.labels).toEqual(["test"]);
+
+			// Step 3: Retrieve the task and verify persistence
+			const retrieved = await manager.getTask("LIFE-001");
+			expect(retrieved).not.toBeNull();
+			expect(retrieved!.id).toBe("LIFE-001");
+			expect(retrieved!.status).toBe("In Progress");
+			expect(retrieved!.assignee).toBe("developer");
+			expect(retrieved!.description).toBe("Testing the full lifecycle");
+			expect(retrieved!.implementationPlan).toBe("Step 1: Do X\nStep 2: Do Y");
+
+			// Step 4: Complete the task
+			const completed = await manager.updateTask("LIFE-001", {
+				status: "Done",
+				implementationNotes: "Completed successfully",
+			});
+
+			expect(completed.status).toBe("Done");
+			expect(completed.implementationNotes).toBe("Completed successfully");
+
+			// Step 5: Delete the task
+			await manager.deleteTask("LIFE-001");
+
+			// Verify deletion
+			const deleted = await manager.getTask("LIFE-001");
+			expect(deleted).toBeNull();
+
+			// Verify list is empty
+			const tasks = await manager.listTasks();
+			expect(tasks.length).toBe(0);
+		});
+
+		it("should persist tasks across TaskManager instances", async () => {
+			// Create with first manager
+			await manager.init({ prefix: "PERSIST" });
+			await manager.createTask({
+				title: "Persistent Task",
+				priority: "high",
+			});
+
+			// Create a new manager instance for the same directory
+			const newManager = new TaskManager(tempDir);
+
+			// Should be able to retrieve the task without init()
+			const task = await newManager.getTask("PERSIST-001");
+			expect(task).not.toBeNull();
+			expect(task!.title).toBe("Persistent Task");
+			expect(task!.priority).toBe("high");
+
+			// Should be able to update
+			await newManager.updateTask("PERSIST-001", { status: "In Progress" });
+
+			// Original manager should see the update
+			const updatedTask = await manager.getTask("PERSIST-001");
+			expect(updatedTask!.status).toBe("In Progress");
 		});
 	});
 });
