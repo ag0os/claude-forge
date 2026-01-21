@@ -33,6 +33,11 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun run agents/tdd-coordinator.ts` - TDD Coordinator - orchestrate Red-Green-Refactor cycles with human-in-the-loop checkpoints
 - `bun run agents/riff.ts` - Design exploration through pseudo-code dialogue (language-agnostic)
 
+### Forge-Tasks Agent Commands
+- `bun run agents/forge-task-manager.ts` - Planning: digest plans/requirements into tasks with labels
+- `bun run agents/forge-task-coordinator.ts` - Execution: coordinate sub-agents to implement tasks
+- `bun run agents/forge-task-worker.ts` - Implementation: work on a single task, update ACs
+
 ## Code Architecture
 
 ### Directory Structure

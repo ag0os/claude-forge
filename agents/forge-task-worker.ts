@@ -14,22 +14,18 @@
  * - Report completion or blockers
  *
  * Usage:
- *   bun run forge-tasks/agents/task-worker-agent.ts "Implement TASK-001"
- *   bun run forge-tasks/agents/task-worker-agent.ts              # interactive mode
+ *   bun run agents/forge-task-worker.ts "Implement TASK-001"
+ *   bun run agents/forge-task-worker.ts              # interactive mode
  */
 
-import {
-	buildClaudeFlags,
-	getPositionals,
-	spawnClaudeAndWait,
-} from "../../lib";
-import taskWorkerMcp from "../../settings/forge-task-worker.mcp.json" with {
+import { buildClaudeFlags, getPositionals, spawnClaudeAndWait } from "../lib";
+import taskWorkerMcp from "../settings/forge-task-worker.mcp.json" with {
 	type: "json",
 };
-import taskWorkerSettings from "../../settings/forge-task-worker.settings.json" with {
+import taskWorkerSettings from "../settings/forge-task-worker.settings.json" with {
 	type: "json",
 };
-import taskWorkerSystemPrompt from "../../system-prompts/forge-task-worker-prompt.md" with {
+import taskWorkerSystemPrompt from "../system-prompts/forge-task-worker-prompt.md" with {
 	type: "text",
 };
 
@@ -38,7 +34,7 @@ function resolvePath(relativeFromThisFile: string): string {
 	return url.pathname;
 }
 
-const projectRoot = resolvePath("../../");
+const projectRoot = resolvePath("../");
 
 // Get any prompt from positional arguments
 const positionals = getPositionals();

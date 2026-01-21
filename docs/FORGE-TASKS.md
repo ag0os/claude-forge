@@ -645,35 +645,65 @@ import type {
 
 ## Sub-Agents
 
-Forge-tasks includes specialized agents for automated task workflows.
+Forge-tasks includes specialized agents for automated task workflows, organized into three phases:
 
-### forge-task-manager
+```
+Planning → Execution → Implementation
 
-A task management agent that creates, organizes, and tracks tasks. Use this agent for:
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  task-manager   │ ──▶ │   task-coordinator   │ ──▶ │   task-worker   │
+│  (creates tasks)│     │ (delegates to agents)│     │ (implements)    │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+```
 
-- Breaking down requirements into actionable tasks
-- Managing task dependencies
-- Tracking progress across multiple tasks
-- Delegating implementation to workers
+### forge-task-manager (Planning Phase)
+
+Digests implementation plans and requirements into well-structured tasks. Use this agent for:
+
+- Breaking down requirements/PRDs into actionable tasks
+- Creating tasks with standard labels for routing
+- Setting dependencies and priorities
+- Organizing work breakdown structure
 
 **System prompt location:** `system-prompts/forge-task-manager-prompt.md`
 
 **Example workflow:**
 
-1. User provides requirements
-2. Manager breaks down into tasks with `forge-tasks create`
-3. Manager sets dependencies and priorities
-4. Manager delegates ready tasks to worker agents
-5. Manager monitors progress via task status
+1. User provides implementation plan or requirements
+2. Manager analyzes and breaks down into discrete tasks
+3. Manager creates tasks with `forge-tasks create`, applying standard labels
+4. Manager sets dependencies between tasks
+5. Manager summarizes created tasks and dependency structure
 
-### forge-task-worker
+### forge-task-coordinator (Execution Phase)
 
-An implementation agent that works on a single assigned task. Use this agent for:
+Coordinates sub-agents to implement existing tasks. Use this agent for:
 
-- Implementing a specific task
+- Reading and understanding tasks from forge-tasks
+- Discovering available agents in the codebase
+- Matching tasks to appropriate specialists based on labels
+- Delegating with embedded task-update instructions
+- Monitoring progress and verifying completion
+
+**System prompt location:** `system-prompts/forge-task-coordinator-prompt.md`
+
+**Example workflow:**
+
+1. Tasks already exist in `forge/tasks/`
+2. Coordinator reads tasks: `forge-tasks list --ready --plain`
+3. Coordinator discovers available agents via Task tool
+4. Coordinator matches task labels to agent capabilities
+5. Coordinator delegates via Task tool with CLI instructions embedded
+6. Coordinator monitors progress and verifies completion
+
+### forge-task-worker (Implementation Phase)
+
+Implements a single assigned task. Use this agent for:
+
+- Focused implementation of a specific task
 - Tracking progress through acceptance criteria
 - Adding implementation notes
-- Handling blockers
+- Handling and reporting blockers
 
 **System prompt location:** `system-prompts/forge-task-worker-prompt.md`
 
@@ -685,6 +715,21 @@ An implementation agent that works on a single assigned task. Use this agent for
 4. Worker adds notes: `forge-tasks edit TASK-001 --append-notes "Completed X"`
 5. Worker marks done: `forge-tasks edit TASK-001 --status done`
 
+### Standard Labels for Routing
+
+The manager creates tasks with standard labels, and the coordinator uses these for routing:
+
+| Label | Work Type | Routes To |
+|-------|-----------|-----------|
+| `backend` | Server-side logic | Backend specialists |
+| `frontend` | UI, components | Frontend specialists |
+| `api` | REST/GraphQL endpoints | API specialists |
+| `database` | Models, migrations | Database/model agents |
+| `testing` | Tests, coverage | Test agents |
+| `devops` | CI/CD, deployment | DevOps agents |
+| `refactoring` | Code improvement | Refactoring specialists |
+| `documentation` | Docs, READMEs | General-purpose |
+
 ### Agent Registry
 
 Agents are registered in `lib/forge-tasks.ts`:
@@ -693,29 +738,22 @@ Agents are registered in `lib/forge-tasks.ts`:
 import { FORGE_TASK_AGENTS } from "claude-forge/lib/forge-tasks";
 
 // Available agents:
-// - "forge-task-manager"
-// - "forge-task-worker"
+// - "forge-task-manager"    (planning)
+// - "forge-task-coordinator" (execution)
+// - "forge-task-worker"     (implementation)
 
-const managerInfo = FORGE_TASK_AGENTS["forge-task-manager"];
-console.log(managerInfo.description);
-console.log(managerInfo.capabilities);
+const coordinatorInfo = FORGE_TASK_AGENTS["forge-task-coordinator"];
+console.log(coordinatorInfo.description);
+console.log(coordinatorInfo.capabilities);
 ```
 
-### Using Agents in Coordinators
+### Agent Discovery
 
-When building coordinator agents that spawn sub-agents:
+The coordinator discovers available agents through Claude Code's Task tool, which lists:
+- **Plugin agents** (namespaced): `plugin-name:agent-name` (e.g., `rails-dev-plugin:rails-model`)
+- **Standalone agents**: `agent-name` (e.g., `frontend-design`, `general-purpose`)
 
-```typescript
-// In a coordinator agent
-const taskId = "TASK-001";
-
-// Spawn task worker to implement
-await spawnSubAgent({
-  name: "forge-task-worker",
-  systemPrompt: await loadPrompt("forge-task-worker-prompt.md"),
-  input: `Implement task ${taskId}`,
-});
-```
+When no specialist matches a task's labels, the coordinator falls back to `forge-task-worker` or `general-purpose`.
 
 ---
 

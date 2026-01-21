@@ -1,0 +1,14 @@
+{
+	"permissions": {
+		"allow": [
+			"Bash(*)",
+			"Read(*)",
+			"Glob(*)",
+			"Grep(*)",
+			"Task(*)",
+			"TodoWrite(*)"
+		],
+		"deny": []
+	},
+	"systemPromptFiles": ["system-prompts/forge-task-coordinator-prompt.md"]
+}
