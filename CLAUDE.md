@@ -38,6 +38,9 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun run agents/forge-task-coordinator.ts` - Execution: coordinate sub-agents to implement tasks
 - `bun run agents/forge-task-worker.ts` - Implementation: work on a single task, update ACs
 
+### Forkhestra Commands
+- `bun run agents/forkhestra.ts` - Orchestrate agent chains (see Forkhestra section below)
+
 ## Code Architecture
 
 ### Directory Structure
@@ -51,6 +54,63 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bin/` - Compiled binaries (generated)
 - `docs/` - Documentation for framework features
 - `forge-tasks/` - Hybrid task management system (CLI + sub-agents). See [docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)
+- `forkhestra/` - Agent orchestration library for chaining and looping agents
+
+## Forkhestra - Agent Orchestration
+
+Forkhestra provides two modes for orchestrating agents:
+- **Pipeline mode**: Run agents once each, in sequence
+- **Loop mode**: Run agents repeatedly until they output `FORKHESTRA_COMPLETE` or hit max iterations
+
+### CLI Usage
+
+```bash
+# Pipeline mode - run agents once each
+forkhestra "task-manager -> task-coordinator"
+
+# Loop mode - single agent with max iterations
+forkhestra task-coordinator:10
+
+# Chain mode with iterations
+forkhestra "task-manager:3 -> task-coordinator:10"
+
+# Config mode - named chains
+forkhestra --chain plan-and-build
+forkhestra --chain single-task TASK_ID=TASK-001
+
+# Options
+--cwd <path>    Working directory
+--verbose, -v   Full agent output
+--dry-run       Show without executing
+```
+
+### DSL Syntax
+
+- `agent` - Run once, no completion marker check
+- `agent:N` - Loop up to N times, watching for completion marker
+- `a -> b` - Pipeline: run a, then b (both once)
+- `a:3 -> b:10` - Chain: a loops up to 3, then b loops up to 10
+
+### Configuration (forge/chains.json)
+
+```json
+{
+  "chains": {
+    "chain-name": {
+      "description": "What this chain does",
+      "steps": [
+        { "agent": "agent-name" },
+        { "agent": "agent-name", "iterations": 10 },
+        { "agent": "agent-name", "args": ["--task", "${TASK_ID}"] }
+      ]
+    }
+  }
+}
+```
+
+### Completion Marker Contract
+
+Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
 
 ### Key Libraries
 - `@anthropic-ai/claude-code` - Official Claude Code SDK
