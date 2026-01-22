@@ -10,3 +10,10 @@ export {
 	type RunResult,
 	type RunOptions,
 } from "./runner";
+
+export {
+	executeChain,
+	type ChainResult,
+	type ChainOptions,
+	type StepResult,
+} from "./chain";
