@@ -364,9 +364,9 @@ bun compile agents/my-agent.ts
 Matchers control when hooks fire. Common patterns:
 
 - `"*"` - Match all events
-- `"Bash"` - Match specific tool
-- `"Bash(*)"` - Match tool with any arguments
-- `"Edit(*.ts)"` - Match tool with pattern
+- `"Bash"` - Match tool (allows all commands)
+- `"Bash(npm:*)"` - Match tool with command pattern
+- `"Edit(*.ts)"` - Match tool with file pattern
 
 ---
 
