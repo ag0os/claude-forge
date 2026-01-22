@@ -325,3 +325,7 @@ forge-tasks create "Add authentication tests" \
 - Don't create tasks that are too large (break them down)
 - Don't create tasks that are too small (combine related work)
 - After creating tasks, summarize what was created and the dependency structure
+
+## Forkhestra Integration
+
+When running in a forkhestra orchestration loop, output `FORKHESTRA_COMPLETE` on its own line when you have finished creating all tasks from the requirements. This signals to forkhestra that your work is done and the next agent in the chain can begin.
