@@ -228,11 +228,10 @@ async function main() {
 
 			steps = getChain(config, chainName);
 
-			// Parse variables from remaining positionals
+			// Parse variables from remaining positionals and substitute
+			// Always call substituteVars to validate that no placeholders remain unresolved
 			const vars = parseVariables(positionals);
-			if (Object.keys(vars).length > 0) {
-				steps = substituteVars(steps, vars);
-			}
+			steps = substituteVars(steps, vars);
 
 			if (verbose) {
 				console.log(`[forkhestra] Loaded chain '${chainName}' from config`);

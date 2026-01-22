@@ -91,13 +91,17 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		}
 	};
 
-	process.on("SIGINT", () => handleSignal("SIGINT"));
-	process.on("SIGTERM", () => handleSignal("SIGTERM"));
+	// Store handler references so removeListener can match them
+	const sigintHandler = () => handleSignal("SIGINT");
+	const sigtermHandler = () => handleSignal("SIGTERM");
+
+	process.on("SIGINT", sigintHandler);
+	process.on("SIGTERM", sigtermHandler);
 
 	// Cleanup function to remove signal handlers
 	const cleanup = () => {
-		process.removeListener("SIGINT", () => handleSignal("SIGINT"));
-		process.removeListener("SIGTERM", () => handleSignal("SIGTERM"));
+		process.removeListener("SIGINT", sigintHandler);
+		process.removeListener("SIGTERM", sigtermHandler);
 	};
 
 	try {
@@ -105,6 +109,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		if (!loop) {
 			const result = await runOnce(agent, cmdArgs, cwd, verbose);
 			currentProcess = null;
+			cleanup();
 
 			return {
 				complete: result.exitCode === 0,
