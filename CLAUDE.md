@@ -18,6 +18,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun check` - Run Biome checks without fixes
 - `bun lint:fix` - Apply unsafe fixes with Biome
 - `bun run compile:forge-tasks` - Compile forge-tasks CLI to binary
+- `bun run compile:forkhestra` - Compile forkhestra CLI to binary
 - `bun test:forge-tasks` - Run forge-tasks tests
 
 ### Agent Commands
