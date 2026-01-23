@@ -20,7 +20,14 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { type ChainResult, executeChain } from "../lib/forkhestra/chain";
-import { getChain, loadConfig, substituteVars } from "../lib/forkhestra/config";
+import {
+	type AgentConfig,
+	type ChainConfig,
+	getChain,
+	loadConfig,
+	substituteVars,
+	substituteVarsInChain,
+} from "../lib/forkhestra/config";
 import { type ChainStep, parseDSL } from "../lib/forkhestra/parser";
 import { resolvePrompt } from "../lib/forkhestra/prompt";
 
@@ -184,13 +191,16 @@ interface DryRunOptions {
 	cwd?: string;
 	cliPrompt?: string;
 	cliPromptFile?: string;
+	chainConfig?: ChainConfig;
+	agentDefaults?: Record<string, AgentConfig>;
 }
 
 /**
  * Print dry-run output showing what would be executed
  */
 async function printDryRun(options: DryRunOptions) {
-	const { steps, cwd, cliPrompt, cliPromptFile } = options;
+	const { steps, cwd, cliPrompt, cliPromptFile, chainConfig, agentDefaults } =
+		options;
 	const resolvedCwd = cwd || process.cwd();
 
 	console.log("[forkhestra] Dry run - would execute the following chain:\n");
@@ -219,6 +229,8 @@ async function printDryRun(options: DryRunOptions) {
 					cliPrompt,
 					cliPromptFile,
 					step,
+					chain: chainConfig,
+					agentConfig: agentDefaults?.[step.agent],
 				},
 				resolvedCwd,
 			);
@@ -267,6 +279,8 @@ async function main() {
 	const cwd = cwdFlag ? resolve(cwdFlag) : process.cwd();
 
 	let steps: ChainStep[];
+	let chainConfig: ChainConfig | undefined;
+	let agentDefaults: Record<string, AgentConfig> | undefined;
 
 	try {
 		if (chainName) {
@@ -285,6 +299,15 @@ async function main() {
 			// Always call substituteVars to validate that no placeholders remain unresolved
 			const vars = parseVariables(positionals);
 			steps = substituteVars(steps, vars);
+
+			// Store chain config (with variable substitution) for prompt resolution
+			const rawChainConfig = config.chains[chainName];
+			if (rawChainConfig) {
+				chainConfig = substituteVarsInChain(rawChainConfig, vars);
+			}
+
+			// Store agent defaults for prompt resolution
+			agentDefaults = config.agents;
 
 			if (verbose) {
 				console.log(`[forkhestra] Loaded chain '${chainName}' from config`);
@@ -318,7 +341,14 @@ async function main() {
 
 		// Dry run: just show what would happen
 		if (dryRun) {
-			await printDryRun({ steps, cwd, cliPrompt, cliPromptFile });
+			await printDryRun({
+				steps,
+				cwd,
+				cliPrompt,
+				cliPromptFile,
+				chainConfig,
+				agentDefaults,
+			});
 			process.exit(EXIT_COMPLETE);
 		}
 
@@ -345,6 +375,8 @@ async function main() {
 			verbose,
 			cliPrompt,
 			cliPromptFile,
+			chainConfig,
+			agentDefaults,
 		});
 
 		// Print summary

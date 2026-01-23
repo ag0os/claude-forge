@@ -72,11 +72,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
 	} = options;
 
 	// Build command arguments
-	const cmdArgs: string[] = [];
-	if (cwd) {
-		cmdArgs.push("--cwd", cwd);
-	}
-	cmdArgs.push(...args);
+	// Note: cwd is passed to spawn() directly, not as an argument
+	const cmdArgs: string[] = [...args];
 
 	// Append prompt as last positional argument if provided
 	if (prompt) {

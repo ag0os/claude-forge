@@ -131,7 +131,7 @@ describe("runner", () => {
 			expect(result.exitCode).toBe(0);
 		});
 
-		test("passes --cwd to agent", async () => {
+		test("uses cwd for process working directory", async () => {
 			const result = await run({
 				agent: testAgentPath,
 				maxIterations: 1,
