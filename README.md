@@ -139,10 +139,14 @@ Each agent is a specialized Claude instance with custom configurations:
 - **riff** - Design exploration through pseudo-code dialogue (language-agnostic)
 
 ### Coordination Agents
+- **forkhestra** - Agent orchestration with pipelines and loops (see Forkhestra section below)
 - **chain** - Chain multiple Claude instances (planner → contain)
 - **parallel** - Run parallel operations concurrently
 - **rails-backlog** - Rails Backlog Task Coordinator (analyze backlog.md + coordinate sub-agents)
 - **plan-coordinator** - Implementation Plan Coordinator (coordinate sub-agents step by step)
+- **forge-task-manager** - Digest plans/requirements into forge-tasks with labels
+- **forge-task-coordinator** - Coordinate sub-agents to implement forge-tasks
+- **forge-task-worker** - Work on a single forge-task, updating acceptance criteria
 
 ### Analysis & Research Agents
 - **orient** - Generates orientation maps for concepts, features, or files
@@ -211,6 +215,62 @@ forge-tasks edit TASK-001 --status in-progress --check-ac 1
 ```
 
 For complete documentation including programmatic usage and sub-agent integration, see **[docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)**.
+
+## Forkhestra: Agent Orchestration
+
+Forkhestra orchestrates agent chains with two execution modes: pipeline (run once each) and loop (repeat until completion marker or max iterations).
+
+### Quick Example
+
+```bash
+# Single agent loop - run up to 10 iterations
+forkhestra task-coordinator:10
+
+# Pipeline - run agents once each, in sequence
+forkhestra "task-manager -> task-coordinator"
+
+# Chain with iterations
+forkhestra "task-manager:3 -> task-coordinator:10"
+
+# Config mode - named chains from forge/chains.json
+forkhestra --chain plan-and-build
+forkhestra --chain single-task TASK_ID=TASK-001
+
+# With prompts - pass instructions to agents
+forkhestra task-coordinator:10 -p "Focus on authentication tasks"
+forkhestra --chain build --prompt-file prompts/instructions.md
+```
+
+### DSL Syntax
+
+| Pattern | Behavior |
+|---------|----------|
+| `agent` | Run once, no completion check |
+| `agent:N` | Loop up to N times, stop on `FORKHESTRA_COMPLETE` |
+| `a -> b` | Pipeline: run a then b (both once) |
+| `a:3 -> b:10` | Chain: a loops up to 3, then b loops up to 10 |
+
+### Configuration (forge/chains.json)
+
+```json
+{
+  "agents": {
+    "task-manager": { "defaultPrompt": "Create tasks from requirements" }
+  },
+  "chains": {
+    "plan-and-build": {
+      "description": "Plan then implement",
+      "prompt": "Focus on ${FEATURE_NAME}",
+      "steps": [
+        { "agent": "task-manager" },
+        { "agent": "task-coordinator", "iterations": 10 }
+      ]
+    }
+  }
+}
+```
+
+For complete documentation including prompt resolution and completion markers, see **[docs/FORKHESTRA.md](docs/FORKHESTRA.md)**.
 
 ---
 
