@@ -31,3 +31,10 @@ export {
 	type ChainOptions,
 	type StepResult,
 } from "./chain";
+
+// From prompt.ts
+export {
+	readPromptFile,
+	resolvePrompt,
+	type PromptSources,
+} from "./prompt";
