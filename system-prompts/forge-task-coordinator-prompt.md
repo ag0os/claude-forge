@@ -224,6 +224,15 @@ A task is complete ONLY when:
 - **Unclear requirements**: Ask user for clarification before delegating
 - **Tests failing**: Coordinate with sub-agent to fix before marking complete
 
+## Forkhestra Integration
+
+When running in a forkhestra orchestration loop, after checking task status and confirming all tasks are Done (no tasks in 'To Do' or 'In Progress' status), output `FORKHESTRA_COMPLETE` on its own line. This signals to forkhestra that your work is done and the orchestration can complete.
+
+To check if all tasks are complete:
+1. Run `forge-tasks list --plain` to see all tasks
+2. If NO tasks have status 'To Do' or 'In Progress', all work is done
+3. Output `FORKHESTRA_COMPLETE` on its own line before exiting
+
 ## Important Reminders
 
 - **YOU COORDINATE, YOU DON'T IMPLEMENT**

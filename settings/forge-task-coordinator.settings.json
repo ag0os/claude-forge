@@ -1,12 +1,12 @@
 {
 	"permissions": {
 		"allow": [
-			"Bash(*)",
-			"Read(*)",
-			"Glob(*)",
-			"Grep(*)",
-			"Task(*)",
-			"TodoWrite(*)"
+			"Bash",
+			"Read",
+			"Glob",
+			"Grep",
+			"Task",
+			"TodoWrite"
 		],
 		"deny": []
 	},

@@ -18,6 +18,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun check` - Run Biome checks without fixes
 - `bun lint:fix` - Apply unsafe fixes with Biome
 - `bun run compile:forge-tasks` - Compile forge-tasks CLI to binary
+- `bun run compile:forkhestra` - Compile forkhestra CLI to binary
 - `bun test:forge-tasks` - Run forge-tasks tests
 
 ### Agent Commands
@@ -38,6 +39,9 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun run agents/forge-task-coordinator.ts` - Execution: coordinate sub-agents to implement tasks
 - `bun run agents/forge-task-worker.ts` - Implementation: work on a single task, update ACs
 
+### Forkhestra Commands
+- `bun run agents/forkhestra.ts` - Orchestrate agent chains (see Forkhestra section below)
+
 ## Code Architecture
 
 ### Directory Structure
@@ -51,6 +55,91 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bin/` - Compiled binaries (generated)
 - `docs/` - Documentation for framework features
 - `forge-tasks/` - Hybrid task management system (CLI + sub-agents). See [docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)
+- `forkhestra/` - Agent orchestration library for chaining and looping agents
+
+## Forkhestra - Agent Orchestration
+
+Forkhestra provides two modes for orchestrating agents:
+- **Pipeline mode**: Run agents once each, in sequence
+- **Loop mode**: Run agents repeatedly until they output `FORKHESTRA_COMPLETE` or hit max iterations
+
+### CLI Usage
+
+```bash
+# Pipeline mode - run agents once each
+forkhestra "task-manager -> task-coordinator"
+
+# Loop mode - single agent with max iterations
+forkhestra task-coordinator:10
+
+# Chain mode with iterations
+forkhestra "task-manager:3 -> task-coordinator:10"
+
+# Config mode - named chains
+forkhestra --chain plan-and-build
+forkhestra --chain single-task TASK_ID=TASK-001
+
+# With prompts - pass instructions to agents
+forkhestra task-coordinator:10 -p "Focus on TASK-001"
+forkhestra --chain build --prompt "Implement the login feature"
+forkhestra agent:5 --prompt-file prompts/instructions.md
+
+# Options
+--cwd <path>           Working directory
+--verbose, -v          Full agent output
+--dry-run              Show without executing
+--prompt, -p <text>    Inline prompt to pass to all agents
+--prompt-file <path>   Path to file containing prompt
+```
+
+### DSL Syntax
+
+- `agent` - Run once, no completion marker check
+- `agent:N` - Loop up to N times, watching for completion marker
+- `a -> b` - Pipeline: run a, then b (both once)
+- `a:3 -> b:10` - Chain: a loops up to 3, then b loops up to 10
+
+### Configuration (forge/chains.json)
+
+```json
+{
+  "agents": {
+    "task-manager": {
+      "defaultPrompt": "Create tasks from current requirements"
+    }
+  },
+  "chains": {
+    "chain-name": {
+      "description": "What this chain does",
+      "prompt": "Chain-level prompt for all steps",
+      "steps": [
+        { "agent": "agent-name" },
+        { "agent": "agent-name", "iterations": 10 },
+        { "agent": "agent-name", "args": ["--task", "${TASK_ID}"] },
+        { "agent": "agent-name", "prompt": "Step-specific prompt override" },
+        { "agent": "agent-name", "promptFile": "prompts/instructions.md" }
+      ]
+    }
+  }
+}
+```
+
+### Prompt Resolution Priority
+
+When multiple prompt sources exist, the highest priority wins:
+
+| Priority | Source | Scope |
+|----------|--------|-------|
+| 1 | CLI `--prompt` / `--prompt-file` | All steps (runtime override) |
+| 2 | Step `prompt` / `promptFile` | This step only |
+| 3 | Chain `prompt` / `promptFile` | All steps in chain |
+| 4 | Agent `defaultPrompt` / `defaultPromptFile` | Fallback for this agent |
+
+At each level, inline `prompt` beats `promptFile`. See [docs/FORKHESTRA.md](docs/FORKHESTRA.md) for full documentation.
+
+### Completion Marker Contract
+
+Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
 
 ### Key Libraries
 - `@anthropic-ai/claude-code` - Official Claude Code SDK

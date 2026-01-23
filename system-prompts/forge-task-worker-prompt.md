@@ -231,3 +231,7 @@ forge-tasks edit TASK-001 --status done --append-notes "Task completed: User mod
 - Commit with task ID in the message
 - Only mark done when ALL ACs are checked
 - Report blockers immediately, don't struggle silently
+
+## Forkhestra Integration
+
+When running in a forkhestra orchestration loop, after you have completed your assigned task (status is 'Done' and all acceptance criteria are checked), output `FORKHESTRA_COMPLETE` on its own line. This signals to forkhestra that your work is done and allows the orchestrator to proceed with the next step in the chain.
