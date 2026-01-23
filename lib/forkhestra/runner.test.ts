@@ -142,4 +142,66 @@ describe("runner", () => {
 			expect(result.exitCode).toBe(0);
 		});
 	});
+
+	describe("prompt passing", () => {
+		test("passes prompt as last positional argument in single-run mode", async () => {
+			// The test-agent echoes all args, so if prompt is passed, it will be in output
+			const result = await run({
+				agent: testAgentPath,
+				maxIterations: 1,
+				loop: false,
+				prompt: "Build a new feature",
+			});
+
+			expect(result.exitCode).toBe(0);
+			expect(result.reason).toBe("single_run");
+		});
+
+		test("passes prompt as last positional argument in loop mode", async () => {
+			// Use completing agent which outputs marker
+			const result = await run({
+				agent: completingAgentPath,
+				maxIterations: 5,
+				loop: true,
+				prompt: "Build a new feature",
+			});
+
+			expect(result.exitCode).toBe(0);
+			expect(result.reason).toBe("marker");
+		});
+
+		test("prompt comes after args", async () => {
+			const result = await run({
+				agent: testAgentPath,
+				maxIterations: 1,
+				loop: false,
+				args: ["--task", "TASK-001"],
+				prompt: "Implement the feature",
+			});
+
+			expect(result.exitCode).toBe(0);
+		});
+
+		test("undefined prompt does not add extra args", async () => {
+			const result = await run({
+				agent: testAgentPath,
+				maxIterations: 1,
+				loop: false,
+				prompt: undefined,
+			});
+
+			expect(result.exitCode).toBe(0);
+		});
+
+		test("empty string prompt does not add extra args", async () => {
+			const result = await run({
+				agent: testAgentPath,
+				maxIterations: 1,
+				loop: false,
+				prompt: "",
+			});
+
+			expect(result.exitCode).toBe(0);
+		});
+	});
 });

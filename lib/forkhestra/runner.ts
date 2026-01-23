@@ -42,6 +42,8 @@ export interface RunOptions {
 	cwd?: string;
 	/** Show verbose output */
 	verbose?: boolean;
+	/** Prompt to pass as positional argument to the agent */
+	prompt?: string;
 }
 
 /**
@@ -66,6 +68,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		args = [],
 		cwd,
 		verbose = false,
+		prompt,
 	} = options;
 
 	// Build command arguments
@@ -74,6 +77,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
 		cmdArgs.push("--cwd", cwd);
 	}
 	cmdArgs.push(...args);
+
+	// Append prompt as last positional argument if provided
+	if (prompt) {
+		cmdArgs.push(prompt);
+	}
 
 	// Track child process for signal forwarding
 	let currentProcess: Subprocess | null = null;

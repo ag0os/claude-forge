@@ -22,6 +22,7 @@ import { parseArgs } from "node:util";
 import { type ChainResult, executeChain } from "../lib/forkhestra/chain";
 import { getChain, loadConfig, substituteVars } from "../lib/forkhestra/config";
 import { type ChainStep, parseDSL } from "../lib/forkhestra/parser";
+import { resolvePrompt } from "../lib/forkhestra/prompt";
 
 // Exit codes
 const EXIT_COMPLETE = 0;
@@ -38,6 +39,8 @@ function parseArguments() {
 			verbose: { type: "boolean", short: "v", default: false },
 			"dry-run": { type: "boolean", default: false },
 			chain: { type: "string" },
+			prompt: { type: "string", short: "p" },
+			"prompt-file": { type: "string" },
 			help: { type: "boolean", short: "h", default: false },
 		},
 		allowPositionals: true,
@@ -99,11 +102,18 @@ EXAMPLES:
   forkhestra --chain plan-and-build            Load chain from forge/chains.json
   forkhestra --chain single-task TASK_ID=001   Config with variable substitution
 
+  # With prompts
+  forkhestra task-coordinator:10 -p "Focus on TASK-001"
+  forkhestra --chain build --prompt "Implement the login feature"
+  forkhestra agent:5 --prompt-file prompts/instructions.md
+
 OPTIONS:
   --cwd <path>          Working directory for all agents
   --verbose, -v         Show full agent output and iteration details
   --dry-run             Show what would run without executing
   --chain <name>        Run named chain from forge/chains.json
+  --prompt, -p <text>   Inline prompt to pass to agents (overrides config prompts)
+  --prompt-file <path>  Path to file containing prompt (relative to cwd)
   --help, -h            Show this help message
 
 EXIT CODES:
@@ -167,9 +177,22 @@ function printSummary(result: ChainResult, steps: ChainStep[]) {
 }
 
 /**
+ * Options for dry-run output
+ */
+interface DryRunOptions {
+	steps: ChainStep[];
+	cwd?: string;
+	cliPrompt?: string;
+	cliPromptFile?: string;
+}
+
+/**
  * Print dry-run output showing what would be executed
  */
-function printDryRun(steps: ChainStep[], cwd?: string) {
+async function printDryRun(options: DryRunOptions) {
+	const { steps, cwd, cliPrompt, cliPromptFile } = options;
+	const resolvedCwd = cwd || process.cwd();
+
 	console.log("[forkhestra] Dry run - would execute the following chain:\n");
 
 	if (cwd) {
@@ -188,6 +211,34 @@ function printDryRun(steps: ChainStep[], cwd?: string) {
 			: "";
 
 		console.log(`  ${i + 1}. ${step.agent} - ${modeDesc}${argsDesc}`);
+
+		// Resolve and display prompt for this step
+		try {
+			const resolvedPromptText = await resolvePrompt(
+				{
+					cliPrompt,
+					cliPromptFile,
+					step,
+				},
+				resolvedCwd,
+			);
+
+			if (resolvedPromptText) {
+				// Truncate long prompts for display
+				const displayPrompt =
+					resolvedPromptText.length > 100
+						? `${resolvedPromptText.substring(0, 100)}...`
+						: resolvedPromptText;
+				// Replace newlines for single-line display
+				const singleLinePrompt = displayPrompt.replace(/\n/g, "\\n");
+				console.log(`       prompt: "${singleLinePrompt}"`);
+			}
+		} catch (error) {
+			// If prompt file doesn't exist, show the error in dry-run
+			console.log(
+				`       prompt error: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
 	}
 
 	console.log("\n[forkhestra] Dry run complete. No agents were executed.");
@@ -209,6 +260,8 @@ async function main() {
 	const dryRun = Boolean(values["dry-run"]);
 	const chainName = values.chain as string | undefined;
 	const cwdFlag = values.cwd as string | undefined;
+	const cliPrompt = values.prompt as string | undefined;
+	const cliPromptFile = values["prompt-file"] as string | undefined;
 
 	// Resolve working directory
 	const cwd = cwdFlag ? resolve(cwdFlag) : process.cwd();
@@ -265,7 +318,7 @@ async function main() {
 
 		// Dry run: just show what would happen
 		if (dryRun) {
-			printDryRun(steps, cwd);
+			await printDryRun({ steps, cwd, cliPrompt, cliPromptFile });
 			process.exit(EXIT_COMPLETE);
 		}
 
@@ -290,6 +343,8 @@ async function main() {
 			steps,
 			cwd,
 			verbose,
+			cliPrompt,
+			cliPromptFile,
 		});
 
 		// Print summary

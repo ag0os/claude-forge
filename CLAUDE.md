@@ -79,10 +79,17 @@ forkhestra "task-manager:3 -> task-coordinator:10"
 forkhestra --chain plan-and-build
 forkhestra --chain single-task TASK_ID=TASK-001
 
+# With prompts - pass instructions to agents
+forkhestra task-coordinator:10 -p "Focus on TASK-001"
+forkhestra --chain build --prompt "Implement the login feature"
+forkhestra agent:5 --prompt-file prompts/instructions.md
+
 # Options
---cwd <path>    Working directory
---verbose, -v   Full agent output
---dry-run       Show without executing
+--cwd <path>           Working directory
+--verbose, -v          Full agent output
+--dry-run              Show without executing
+--prompt, -p <text>    Inline prompt to pass to all agents
+--prompt-file <path>   Path to file containing prompt
 ```
 
 ### DSL Syntax
@@ -96,18 +103,39 @@ forkhestra --chain single-task TASK_ID=TASK-001
 
 ```json
 {
+  "agents": {
+    "task-manager": {
+      "defaultPrompt": "Create tasks from current requirements"
+    }
+  },
   "chains": {
     "chain-name": {
       "description": "What this chain does",
+      "prompt": "Chain-level prompt for all steps",
       "steps": [
         { "agent": "agent-name" },
         { "agent": "agent-name", "iterations": 10 },
-        { "agent": "agent-name", "args": ["--task", "${TASK_ID}"] }
+        { "agent": "agent-name", "args": ["--task", "${TASK_ID}"] },
+        { "agent": "agent-name", "prompt": "Step-specific prompt override" },
+        { "agent": "agent-name", "promptFile": "prompts/instructions.md" }
       ]
     }
   }
 }
 ```
+
+### Prompt Resolution Priority
+
+When multiple prompt sources exist, the highest priority wins:
+
+| Priority | Source | Scope |
+|----------|--------|-------|
+| 1 | CLI `--prompt` / `--prompt-file` | All steps (runtime override) |
+| 2 | Step `prompt` / `promptFile` | This step only |
+| 3 | Chain `prompt` / `promptFile` | All steps in chain |
+| 4 | Agent `defaultPrompt` / `defaultPromptFile` | Fallback for this agent |
+
+At each level, inline `prompt` beats `promptFile`. See [docs/FORKHESTRA.md](docs/FORKHESTRA.md) for full documentation.
 
 ### Completion Marker Contract
 
