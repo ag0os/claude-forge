@@ -16,6 +16,10 @@ export interface ChainStep {
 	iterations: number;
 	loop: boolean;
 	args?: string[];
+	/** Inline prompt text to pass to the agent */
+	prompt?: string;
+	/** Path to a file containing the prompt */
+	promptFile?: string;
 }
 
 /**
@@ -24,6 +28,20 @@ export interface ChainStep {
 export interface ChainConfig {
 	description?: string;
 	steps: ChainStep[];
+	/** Inline prompt text to pass to all agents in the chain */
+	prompt?: string;
+	/** Path to a file containing the prompt for all agents in the chain */
+	promptFile?: string;
+}
+
+/**
+ * Configuration for a specific agent's defaults
+ */
+export interface AgentConfig {
+	/** Default inline prompt text for this agent */
+	defaultPrompt?: string;
+	/** Default path to a file containing the prompt for this agent */
+	defaultPromptFile?: string;
 }
 
 /**
@@ -31,6 +49,8 @@ export interface ChainConfig {
  */
 export interface ForkhestraConfig {
 	chains: Record<string, ChainConfig>;
+	/** Agent-specific default configurations */
+	agents?: Record<string, AgentConfig>;
 }
 
 const CONFIG_PATH = "forge/chains.json";
@@ -124,7 +144,79 @@ function validateAndTransformConfig(
 		);
 	}
 
-	return { chains };
+	// Validate agents section if present
+	let agents: Record<string, AgentConfig> | undefined;
+
+	if ("agents" in config && config.agents !== undefined) {
+		if (typeof config.agents !== "object" || config.agents === null) {
+			throw new Error(
+				`Invalid config schema at ${configPath}: 'agents' must be an object`
+			);
+		}
+
+		const rawAgents = config.agents as Record<string, unknown>;
+		agents = {};
+
+		for (const [agentName, rawAgent] of Object.entries(rawAgents)) {
+			agents[agentName] = validateAndTransformAgent(
+				rawAgent,
+				agentName,
+				configPath
+			);
+		}
+	}
+
+	return { chains, agents };
+}
+
+/**
+ * Validate and transform a single agent configuration.
+ *
+ * @param rawAgent - The raw agent object
+ * @param agentName - Name of the agent (for error messages)
+ * @param configPath - Path to the config file (for error messages)
+ * @returns Validated and transformed agent config
+ * @throws Error on invalid agent structure
+ */
+function validateAndTransformAgent(
+	rawAgent: unknown,
+	agentName: string,
+	configPath: string
+): AgentConfig {
+	if (typeof rawAgent !== "object" || rawAgent === null) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: agent '${agentName}' must be an object`
+		);
+	}
+
+	const agent = rawAgent as Record<string, unknown>;
+
+	// Validate defaultPrompt if present
+	if (
+		"defaultPrompt" in agent &&
+		agent.defaultPrompt !== undefined &&
+		typeof agent.defaultPrompt !== "string"
+	) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: agent '${agentName}' defaultPrompt must be a string`
+		);
+	}
+
+	// Validate defaultPromptFile if present
+	if (
+		"defaultPromptFile" in agent &&
+		agent.defaultPromptFile !== undefined &&
+		typeof agent.defaultPromptFile !== "string"
+	) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: agent '${agentName}' defaultPromptFile must be a string`
+		);
+	}
+
+	return {
+		defaultPrompt: agent.defaultPrompt as string | undefined,
+		defaultPromptFile: agent.defaultPromptFile as string | undefined,
+	};
 }
 
 /**
@@ -174,6 +266,28 @@ function validateAndTransformChain(
 		);
 	}
 
+	// Validate prompt if present
+	if (
+		"prompt" in chain &&
+		chain.prompt !== undefined &&
+		typeof chain.prompt !== "string"
+	) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: chain '${chainName}' prompt must be a string`
+		);
+	}
+
+	// Validate promptFile if present
+	if (
+		"promptFile" in chain &&
+		chain.promptFile !== undefined &&
+		typeof chain.promptFile !== "string"
+	) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: chain '${chainName}' promptFile must be a string`
+		);
+	}
+
 	// Validate each step
 	const steps: ChainStep[] = chain.steps.map((rawStep, index) =>
 		validateAndTransformStep(rawStep, chainName, index, configPath)
@@ -182,6 +296,8 @@ function validateAndTransformChain(
 	return {
 		description: chain.description as string | undefined,
 		steps,
+		prompt: chain.prompt as string | undefined,
+		promptFile: chain.promptFile as string | undefined,
 	};
 }
 
@@ -272,11 +388,35 @@ function validateAndTransformStep(
 		args = step.args as string[];
 	}
 
+	// Validate prompt if present
+	if (
+		"prompt" in step &&
+		step.prompt !== undefined &&
+		typeof step.prompt !== "string"
+	) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: ${stepDesc} 'prompt' must be a string`
+		);
+	}
+
+	// Validate promptFile if present
+	if (
+		"promptFile" in step &&
+		step.promptFile !== undefined &&
+		typeof step.promptFile !== "string"
+	) {
+		throw new Error(
+			`Invalid config schema at ${configPath}: ${stepDesc} 'promptFile' must be a string`
+		);
+	}
+
 	return {
 		agent: step.agent,
 		iterations,
 		loop,
 		args,
+		prompt: step.prompt as string | undefined,
+		promptFile: step.promptFile as string | undefined,
 	};
 }
 
@@ -306,11 +446,11 @@ export function getChain(config: ForkhestraConfig, name: string): ChainStep[] {
 }
 
 /**
- * Substitute ${VAR_NAME} placeholders in step args with provided variable values.
+ * Substitute ${VAR_NAME} placeholders in step args and prompt fields with provided variable values.
  *
  * @param steps - Array of ChainStep objects to process
  * @param vars - Record of variable names to values
- * @returns New array of ChainStep objects with substituted args
+ * @returns New array of ChainStep objects with substituted args and prompts
  * @throws Error if a variable is referenced but not provided
  */
 export function substituteVars(
@@ -318,19 +458,61 @@ export function substituteVars(
 	vars: Record<string, string>
 ): ChainStep[] {
 	return steps.map((step) => {
-		if (!step.args || step.args.length === 0) {
-			return step;
+		const result = { ...step };
+
+		// Substitute in args if present
+		if (step.args && step.args.length > 0) {
+			result.args = step.args.map((arg) =>
+				substituteVarsInString(arg, vars, step.agent)
+			);
 		}
 
-		const substitutedArgs = step.args.map((arg) =>
-			substituteVarsInString(arg, vars, step.agent)
-		);
+		// Substitute in prompt if present
+		if (step.prompt) {
+			result.prompt = substituteVarsInString(step.prompt, vars, step.agent);
+		}
 
-		return {
-			...step,
-			args: substitutedArgs,
-		};
+		// Substitute in promptFile if present
+		if (step.promptFile) {
+			result.promptFile = substituteVarsInString(
+				step.promptFile,
+				vars,
+				step.agent
+			);
+		}
+
+		return result;
 	});
+}
+
+/**
+ * Substitute ${VAR_NAME} placeholders in chain-level prompt fields with provided variable values.
+ *
+ * @param chain - The ChainConfig to process
+ * @param vars - Record of variable names to values
+ * @returns New ChainConfig with substituted prompt fields
+ * @throws Error if a variable is referenced but not provided
+ */
+export function substituteVarsInChain(
+	chain: ChainConfig,
+	vars: Record<string, string>
+): ChainConfig {
+	const result = { ...chain };
+
+	// Substitute in prompt if present
+	if (chain.prompt) {
+		result.prompt = substituteVarsInString(chain.prompt, vars, "chain");
+	}
+
+	// Substitute in promptFile if present
+	if (chain.promptFile) {
+		result.promptFile = substituteVarsInString(chain.promptFile, vars, "chain");
+	}
+
+	// Also substitute in steps
+	result.steps = substituteVars(chain.steps, vars);
+
+	return result;
 }
 
 /**
@@ -338,14 +520,14 @@ export function substituteVars(
  *
  * @param str - The string to process
  * @param vars - Record of variable names to values
- * @param agentName - Name of the agent (for error messages)
+ * @param context - Context description (for error messages)
  * @returns String with all variables substituted
  * @throws Error if a variable is referenced but not provided
  */
 function substituteVarsInString(
 	str: string,
 	vars: Record<string, string>,
-	agentName: string
+	context: string
 ): string {
 	// Match ${VAR_NAME} pattern
 	const varPattern = /\$\{([A-Z_][A-Z0-9_]*)\}/g;
@@ -354,7 +536,7 @@ function substituteVarsInString(
 		const value = vars[varName];
 		if (value === undefined) {
 			throw new Error(
-				`Variable '${varName}' referenced in args for agent '${agentName}' but not provided. ` +
+				`Variable '${varName}' referenced in '${context}' but not provided. ` +
 					`Pass it via CLI: VAR_NAME=value`
 			);
 		}
