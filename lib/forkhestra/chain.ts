@@ -3,10 +3,12 @@
  *
  * Executes a sequence of ChainSteps, running each agent through the runner.
  * Handles step-by-step execution with proper failure handling.
+ * Resolves prompts for each step using the prompt resolution utility.
  */
 
 import { run, type RunResult } from "./runner";
-import type { ChainStep } from "./parser";
+import { resolvePrompt } from "./prompt";
+import type { ChainStep, ChainConfig, AgentConfig } from "./config";
 
 /**
  * Result from a single step in the chain
@@ -42,6 +44,14 @@ export interface ChainOptions {
 	verbose?: boolean;
 	/** Global arguments to pass to all agents (step args take precedence) */
 	globalArgs?: string[];
+	/** CLI-level prompt (highest priority, overrides all other prompts) */
+	cliPrompt?: string;
+	/** CLI-level prompt file path */
+	cliPromptFile?: string;
+	/** Chain configuration (for chain-level prompts) */
+	chainConfig?: ChainConfig;
+	/** Agent default configurations (for agent-level default prompts) */
+	agentDefaults?: Record<string, AgentConfig>;
 }
 
 // Track whether we've received a termination signal
@@ -54,11 +64,29 @@ let signalReceived = false;
  * complete within max iterations; in single mode: returns non-zero exit),
  * the chain stops and reports the failure.
  *
+ * Prompts are resolved for each step using the following priority (highest to lowest):
+ * 1. CLI prompt/promptFile
+ * 2. Step prompt/promptFile
+ * 3. Chain prompt/promptFile
+ * 4. Agent default prompt/promptFile
+ *
  * @param options - Chain execution options
  * @returns ChainResult with success status and per-step details
  */
 export async function executeChain(options: ChainOptions): Promise<ChainResult> {
-	const { steps, cwd, verbose = false, globalArgs = [] } = options;
+	const {
+		steps,
+		cwd,
+		verbose = false,
+		globalArgs = [],
+		cliPrompt,
+		cliPromptFile,
+		chainConfig,
+		agentDefaults,
+	} = options;
+
+	// Resolve cwd for prompt file resolution
+	const resolvedCwd = cwd || process.cwd();
 
 	const stepResults: StepResult[] = [];
 	signalReceived = false;
@@ -109,6 +137,24 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 			// Merge global args with step args (step args take precedence by being last)
 			const mergedArgs = [...globalArgs, ...(step.args || [])];
 
+			// Resolve prompt for this step using the priority hierarchy
+			const resolvedPrompt = await resolvePrompt(
+				{
+					cliPrompt,
+					cliPromptFile,
+					step,
+					chain: chainConfig,
+					agentConfig: agentDefaults?.[step.agent],
+				},
+				resolvedCwd
+			);
+
+			if (verbose && resolvedPrompt) {
+				console.log(
+					`[forkhestra] Using prompt for ${step.agent}: ${resolvedPrompt.substring(0, 50)}${resolvedPrompt.length > 50 ? "..." : ""}`
+				);
+			}
+
 			// Execute the step
 			const result = await run({
 				agent: step.agent,
@@ -117,6 +163,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 				args: mergedArgs.length > 0 ? mergedArgs : undefined,
 				cwd,
 				verbose,
+				prompt: resolvedPrompt,
 			});
 
 			stepResults.push({

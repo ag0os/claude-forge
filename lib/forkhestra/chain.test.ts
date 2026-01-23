@@ -3,25 +3,25 @@
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { writeFileSync, unlinkSync, chmodSync } from "node:fs";
+import { writeFileSync, unlinkSync, chmodSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { executeChain, type ChainResult } from "./chain";
 import { COMPLETION_MARKER } from "./runner";
-import type { ChainStep } from "./parser";
+import type { ChainStep } from "./config";
 
 // Create temporary test scripts
 const tmpDir = "/tmp/forkhestra-chain-test";
+const promptsDir = join(tmpDir, "prompts");
 const simpleAgentPath = join(tmpDir, "simple-agent");
 const completingAgentPath = join(tmpDir, "completing-agent");
 const failingAgentPath = join(tmpDir, "failing-agent");
 const argEchoAgentPath = join(tmpDir, "arg-echo-agent");
 const counterAgentPath = join(tmpDir, "counter-agent");
+const promptEchoAgentPath = join(tmpDir, "prompt-echo-agent");
 
 beforeAll(() => {
-	// Create tmp directory
-	try {
-		require("fs").mkdirSync(tmpDir, { recursive: true });
-	} catch {}
+	// Create tmp directory and prompts subdirectory
+	mkdirSync(promptsDir, { recursive: true });
 
 	// Create a simple agent that exits successfully
 	writeFileSync(
@@ -74,17 +74,48 @@ exit 0
 `
 	);
 	chmodSync(counterAgentPath, 0o755);
+
+	// Create an agent that echoes its last positional argument (the prompt)
+	// This agent stores received prompts to a file for verification
+	writeFileSync(
+		promptEchoAgentPath,
+		`#!/bin/bash
+# Get the last argument (the prompt) - skip --cwd and its value if present
+PROMPT=""
+SKIP_NEXT=false
+for arg in "$@"; do
+  if [ "$SKIP_NEXT" = true ]; then
+    SKIP_NEXT=false
+    continue
+  fi
+  if [ "$arg" = "--cwd" ]; then
+    SKIP_NEXT=true
+    continue
+  fi
+  # Check if arg starts with -- (it's a flag)
+  if [[ "$arg" == --* ]]; then
+    continue
+  fi
+  # This is a positional argument, likely the prompt
+  PROMPT="$arg"
+done
+echo "PROMPT:$PROMPT"
+exit 0
+`
+	);
+	chmodSync(promptEchoAgentPath, 0o755);
+
+	// Create prompt files for testing
+	writeFileSync(join(promptsDir, "cli.md"), "CLI prompt from file");
+	writeFileSync(join(promptsDir, "step1.md"), "Step 1 prompt from file");
+	writeFileSync(join(promptsDir, "step2.md"), "Step 2 prompt from file");
+	writeFileSync(join(promptsDir, "chain.md"), "Chain prompt from file");
+	writeFileSync(join(promptsDir, "agent-default.md"), "Agent default prompt from file");
 });
 
 afterAll(() => {
-	// Cleanup test scripts
-	try {
-		unlinkSync(simpleAgentPath);
-		unlinkSync(completingAgentPath);
-		unlinkSync(failingAgentPath);
-		unlinkSync(argEchoAgentPath);
-		unlinkSync(counterAgentPath);
-	} catch {}
+	// Cleanup test directory
+	rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe("chain executor", () => {
@@ -297,6 +328,325 @@ describe("chain executor", () => {
 			// Just verify it doesn't throw
 			const result = await executeChain({ steps, verbose: true });
 			expect(result.success).toBe(true);
+		});
+	});
+
+	describe("prompt resolution", () => {
+		test("passes CLI prompt to all steps (highest priority)", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Step-level prompt",
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Another step prompt",
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				cliPrompt: "CLI prompt overrides all",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.steps.length).toBe(2);
+		});
+
+		test("passes CLI prompt file to all steps when cliPromptFile provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Step-level prompt",
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				cliPromptFile: "prompts/cli.md",
+			});
+
+			expect(result.success).toBe(true);
+		});
+
+		test("uses step-level prompts when no CLI prompt provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "First step prompt",
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Second step prompt",
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.steps.length).toBe(2);
+		});
+
+		test("uses step promptFile when no step prompt provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					promptFile: "prompts/step1.md",
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+			});
+
+			expect(result.success).toBe(true);
+		});
+
+		test("uses chain-level prompt when no step prompt provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				chainConfig: {
+					steps: [],
+					prompt: "Chain-level prompt for all steps",
+				},
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.steps.length).toBe(2);
+		});
+
+		test("uses chain promptFile when no chain prompt provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				chainConfig: {
+					steps: [],
+					promptFile: "prompts/chain.md",
+				},
+			});
+
+			expect(result.success).toBe(true);
+		});
+
+		test("uses agent default prompt when no higher-level prompts provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				agentDefaults: {
+					[promptEchoAgentPath]: {
+						defaultPrompt: "Agent default prompt",
+					},
+				},
+			});
+
+			expect(result.success).toBe(true);
+		});
+
+		test("uses agent default promptFile when no default prompt provided", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				agentDefaults: {
+					[promptEchoAgentPath]: {
+						defaultPromptFile: "prompts/agent-default.md",
+					},
+				},
+			});
+
+			expect(result.success).toBe(true);
+		});
+
+		test("different steps can have different resolved prompts", async () => {
+			// This tests that step-level prompts take precedence over chain-level
+			// and different steps can have their own prompts
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Step 1 has its own prompt",
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					// No prompt - should fall back to chain-level
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Step 3 has a different prompt",
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				chainConfig: {
+					steps: [],
+					prompt: "Chain fallback for steps without prompts",
+				},
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.steps.length).toBe(3);
+		});
+
+		test("CLI prompt overrides all step and chain-level prompts", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Step prompt (should be overridden)",
+					promptFile: "prompts/step1.md",
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					// No step prompt - would fall back to chain
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				cliPrompt: "CLI prompt wins",
+				chainConfig: {
+					steps: [],
+					prompt: "Chain prompt (should be overridden)",
+				},
+				agentDefaults: {
+					[promptEchoAgentPath]: {
+						defaultPrompt: "Agent default (should be overridden)",
+					},
+				},
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.steps.length).toBe(2);
+		});
+
+		test("works without any prompts configured", async () => {
+			const steps: ChainStep[] = [
+				{
+					agent: simpleAgentPath,
+					iterations: 1,
+					loop: false,
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+			});
+
+			expect(result.success).toBe(true);
+		});
+
+		test("multi-step chain with mixed prompt sources", async () => {
+			// A complex integration test with different prompt sources at each step
+			const steps: ChainStep[] = [
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					prompt: "Step 1: inline prompt",
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					promptFile: "prompts/step2.md",
+				},
+				{
+					agent: promptEchoAgentPath,
+					iterations: 1,
+					loop: false,
+					// Falls back to chain prompt
+				},
+				{
+					agent: simpleAgentPath,
+					iterations: 1,
+					loop: false,
+					// Different agent with no defaults
+				},
+			];
+
+			const result = await executeChain({
+				steps,
+				cwd: tmpDir,
+				chainConfig: {
+					steps: [],
+					prompt: "Chain fallback prompt",
+				},
+				agentDefaults: {
+					[promptEchoAgentPath]: {
+						defaultPrompt: "Agent default (lower priority than chain)",
+					},
+				},
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.steps.length).toBe(4);
 		});
 	});
 });
