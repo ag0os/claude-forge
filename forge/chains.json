@@ -1,9 +1,9 @@
 {
   "agents": {
-    "forge-task-manager": {
+    "tasks:manager": {
       "defaultPrompt": "Review existing plans and create well-structured tasks with clear acceptance criteria"
     },
-    "forge-task-coordinator": {
+    "tasks:coordinator": {
       "defaultPrompt": "Execute all pending tasks in dependency order, delegating to appropriate specialists"
     }
   },
@@ -11,42 +11,42 @@
     "plan-and-build": {
       "description": "Break down requirements into tasks, then coordinate implementation. Both agents loop until they signal completion or reach max iterations.",
       "steps": [
-        { "agent": "forge-task-manager", "iterations": 3 },
-        { "agent": "forge-task-coordinator", "iterations": 15 }
+        { "agent": "tasks:manager", "iterations": 3 },
+        { "agent": "tasks:coordinator", "iterations": 15 }
       ]
     },
     "quick-pipeline": {
       "description": "Run agents in sequence, once each (no looping). Useful for simple workflows where each step runs to natural completion without iteration limits.",
       "steps": [
-        { "agent": "forge-task-manager" },
-        { "agent": "forge-task-coordinator" }
+        { "agent": "tasks:manager" },
+        { "agent": "tasks:coordinator" }
       ]
     },
     "single-task": {
       "description": "Work on one specific task. Uses variable substitution to pass TASK_ID from environment or CLI args.",
       "steps": [
-        { "agent": "forge-task-worker", "iterations": 8, "args": ["--task", "${TASK_ID}"] }
+        { "agent": "tasks:worker", "iterations": 8, "args": ["--task", "${TASK_ID}"] }
       ]
     },
     "mixed-mode": {
       "description": "Manager runs once to create/update tasks, then coordinator loops to implement them. Demonstrates combining looping and non-looping steps.",
       "steps": [
-        { "agent": "forge-task-manager" },
-        { "agent": "forge-task-coordinator", "iterations": 15 }
+        { "agent": "tasks:manager" },
+        { "agent": "tasks:coordinator", "iterations": 15 }
       ]
     },
     "full-tdd-cycle": {
       "description": "Complete TDD workflow: plan tasks, then coordinate implementation with TDD practices.",
       "steps": [
-        { "agent": "forge-task-manager", "iterations": 2 },
-        { "agent": "tdd-coordinator", "iterations": 10 }
+        { "agent": "tasks:manager", "iterations": 2 },
+        { "agent": "build:tdd", "iterations": 10 }
       ]
     },
     "design-then-build": {
       "description": "Design exploration followed by implementation. Riff agent runs once to explore design, then coordinator implements.",
       "steps": [
-        { "agent": "riff" },
-        { "agent": "forge-task-coordinator", "iterations": 12 }
+        { "agent": "plan:riff" },
+        { "agent": "tasks:coordinator", "iterations": 12 }
       ]
     },
     "feature-build": {
@@ -54,12 +54,12 @@
       "prompt": "Work on the ${FEATURE_NAME} feature following TDD practices",
       "steps": [
         {
-          "agent": "forge-task-manager",
+          "agent": "tasks:manager",
           "iterations": 2,
           "prompt": "Create tasks for ${FEATURE_NAME} from the requirements. Each task should have atomic, testable acceptance criteria."
         },
         {
-          "agent": "forge-task-coordinator",
+          "agent": "tasks:coordinator",
           "iterations": 15
         }
       ]
@@ -68,7 +68,7 @@
       "description": "Work on a specific task with a custom prompt. Example of step-level prompt with variable substitution.",
       "steps": [
         {
-          "agent": "forge-task-worker",
+          "agent": "tasks:worker",
           "iterations": 10,
           "args": ["--task", "${TASK_ID}"],
           "prompt": "Implement ${TASK_ID} following the implementation plan. Check off each acceptance criterion as you complete it."

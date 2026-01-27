@@ -21,31 +21,84 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun run compile:forkhestra` - Compile forkhestra CLI to binary
 - `bun test:forge-tasks` - Run forge-tasks tests
 
-### Agent Commands
-- `bun run agents/contain.ts` - Launch Claude with contained settings
-- `bun run agents/planner.ts` - Launch Claude in planning mode
-- `bun run agents/gemsum.ts` - Gemini-powered summarization
-- `bun run agents/claude-mix.ts` - Claude with mixed capabilities
-- `bun run agents/parallel.ts` - Run parallel operations
-- `bun run agents/designer.ts` - Design mode with Figma/Chrome DevTools integrations
-- `bun run agents/chain.ts` - Chain multiple Claude instances with data flow
-- `bun run agents/rails-backlog.ts` - Rails Backlog Task Coordinator - analyze backlog tasks and coordinate specialized Rails sub-agents
-- `bun run agents/plan-coordinator.ts` - Implementation Plan Coordinator - coordinate sub-agents to implement a plan step by step
-- `bun run agents/tdd-coordinator.ts` - TDD Coordinator - orchestrate Red-Green-Refactor cycles with human-in-the-loop checkpoints
-- `bun run agents/riff.ts` - Design exploration through pseudo-code dialogue (language-agnostic)
+### Agent Commands (Namespaced)
 
-### Forge-Tasks Agent Commands
-- `bun run agents/forge-task-manager.ts` - Planning: digest plans/requirements into tasks with labels
-- `bun run agents/forge-task-coordinator.ts` - Execution: coordinate sub-agents to implement tasks
-- `bun run agents/forge-task-worker.ts` - Implementation: work on a single task, update ACs
+Agents are organized into functional namespaces. Run with `bun run agents/<namespace>/<agent>.ts`:
 
-### Forkhestra Commands
-- `bun run agents/forkhestra.ts` - Orchestrate agent chains (see Forkhestra section below)
+**Planning & Design** (`plan:*`)
+- `plan:planner` - Interactive implementation plan creator
+- `plan:riff` - Design exploration through pseudo-code dialogue
+- `plan:brainstorm` - Brainstorm agent variations from an idea
+- `plan:coordinator` - Coordinate sub-agents to implement a plan
+
+**Task Management** (`tasks:*`)
+- `tasks:manager` - Create and manage tasks with labels and ACs
+- `tasks:coordinator` - Coordinate sub-agents to implement tasks
+- `tasks:worker` - Implement a single assigned task
+
+**Build & Implementation** (`build:*`)
+- `build:builder` - Build partner for implementing features
+- `build:refactor` - Code refactoring partner
+- `build:tdd` - TDD Coordinator with Red-Green-Refactor cycles
+
+**Design & Visualization** (`design:*`)
+- `design:designer` - Design partner with Figma/Chrome DevTools
+- `design:audit` - Comprehensive design system audits
+- `design:diagram:all` - Generate all diagrams for a project
+- `design:diagram:topic` - Topic-focused diagram generation
+- `design:diagram:consolidate` - Consolidate and dedupe diagrams
+
+**Video Processing** (`video:*`)
+- `video:summarize` - Gemini-powered video summarization
+- `video:execute` - Extract instructions from video, execute with Claude
+
+**Orchestration** (`orch:*`)
+- `orch:forkhestra` - Orchestrate agent chains (see Forkhestra section)
+- `orch:chain` - Chain planner -> contain with data flow
+- `orch:parallel` - Run parallel operations
+
+**Analysis** (`analyze:*`)
+- `analyze:orient` - Get oriented in a codebase
+- `analyze:search` - Search JSONL conversations
+- `analyze:github` - Find GitHub code examples
+
+**Meta Tools** (`meta:*`)
+- `meta:claudemd` - Create or update CLAUDE.md
+- `meta:prompt` - Improve prompts with variations
+- `meta:expectations` - Apply expectations prompt
+- `meta:infer` - Infer commands/hooks from conversations
+
+**Utilities** (`util:*`)
+- `util:latest` - Find newest JSONL for current project
+- `util:mcp-tools` - List MCP server tools
+- `util:jsonl` - JSONL formatting recipes
+- `util:key` - Print Gemini API key
+- `util:scriptkit` - Generate Script Kit scripts
+- `util:conv` - Conversation utilities (TUI)
+
+**Modes** (`modes:*`)
+- `modes:contain` - Launch Claude in contained mode
+- `modes:mix` - Claude with mixed capabilities
+
+**Platform-Specific** (`rails:*`)
+- `rails:backlog` - Rails backlog task coordinator
 
 ## Code Architecture
 
 ### Directory Structure
-- `agents/` - Standalone TypeScript scripts that spawn Claude CLI with specific configurations
+- `agents/` - Namespaced TypeScript agents organized by functional domain
+  - `plan/` - Planning and design exploration agents
+  - `tasks/` - Task management workflow agents
+  - `build/` - Implementation and refactoring agents
+  - `design/` - Design and visualization agents (includes `diagram/` subdirectory)
+  - `video/` - Gemini-powered video processing
+  - `orch/` - Orchestration agents
+  - `analyze/` - Codebase analysis agents
+  - `meta/` - Meta-tools for prompts and documentation
+  - `util/` - Standalone utilities
+  - `modes/` - Alternative Claude configurations
+  - `rails/` - Platform-specific (Rails) agents
+  - `local/` - Personal agents (gitignored)
 - `lib/` - Core utilities for Claude CLI interaction and flag management
 - `settings/` - JSON configuration files for different agent modes (MCP configs and settings)
 - `prompts/` - Markdown prompt templates for various use cases
@@ -59,19 +112,21 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 
 ### Agent Namespacing
 
-Agents support namespacing via subdirectories. The directory structure determines the binary name:
+Agents are namespaced via subdirectories. The directory structure determines the binary name:
 
 | Source Path | Binary Name |
 |-------------|-------------|
-| `agents/planner.ts` | `planner` |
-| `agents/forge-tasks/manager.ts` | `forge-tasks:manager` |
-| `agents/deep/nested/agent.ts` | `deep:nested:agent` |
+| `agents/plan/planner.ts` | `plan:planner` |
+| `agents/tasks/manager.ts` | `tasks:manager` |
+| `agents/design/diagram/all.ts` | `design:diagram:all` |
+| `agents/local/my-agent.ts` | `local:my-agent` |
 
-**Private agents**: Create `agents/local/` for personal agents that won't be committed (gitignored). Example: `agents/local/my-agent.ts` compiles to `local:my-agent`.
+**Private agents**: Create `agents/local/` for personal agents that won't be committed (gitignored).
 
 **Usage with forkhestra**:
 ```bash
-forkhestra "forge-tasks:manager -> forge-tasks:coordinator:10"
+forkhestra "tasks:manager -> tasks:coordinator:10"
+forkhestra "plan:riff -> build:builder"
 ```
 
 ## Forkhestra - Agent Orchestration
@@ -84,22 +139,22 @@ Forkhestra provides two modes for orchestrating agents:
 
 ```bash
 # Pipeline mode - run agents once each
-forkhestra "task-manager -> task-coordinator"
+forkhestra "tasks:manager -> tasks:coordinator"
 
 # Loop mode - single agent with max iterations
-forkhestra task-coordinator:10
+forkhestra tasks:coordinator:10
 
 # Chain mode with iterations
-forkhestra "task-manager:3 -> task-coordinator:10"
+forkhestra "tasks:manager:3 -> tasks:coordinator:10"
 
 # Config mode - named chains
 forkhestra --chain plan-and-build
 forkhestra --chain single-task TASK_ID=TASK-001
 
 # With prompts - pass instructions to agents
-forkhestra task-coordinator:10 -p "Focus on TASK-001"
+forkhestra tasks:coordinator:10 -p "Focus on TASK-001"
 forkhestra --chain build --prompt "Implement the login feature"
-forkhestra agent:5 --prompt-file prompts/instructions.md
+forkhestra plan:planner:5 --prompt-file prompts/instructions.md
 
 # Options
 --cwd <path>           Working directory
@@ -121,20 +176,23 @@ forkhestra agent:5 --prompt-file prompts/instructions.md
 ```json
 {
   "agents": {
-    "task-manager": {
+    "tasks:manager": {
       "defaultPrompt": "Create tasks from current requirements"
     }
   },
   "chains": {
-    "chain-name": {
-      "description": "What this chain does",
-      "prompt": "Chain-level prompt for all steps",
+    "plan-and-build": {
+      "description": "Break down requirements into tasks, then coordinate implementation",
       "steps": [
-        { "agent": "agent-name" },
-        { "agent": "agent-name", "iterations": 10 },
-        { "agent": "agent-name", "args": ["--task", "${TASK_ID}"] },
-        { "agent": "agent-name", "prompt": "Step-specific prompt override" },
-        { "agent": "agent-name", "promptFile": "prompts/instructions.md" }
+        { "agent": "tasks:manager", "iterations": 3 },
+        { "agent": "tasks:coordinator", "iterations": 15 }
+      ]
+    },
+    "design-then-build": {
+      "description": "Design exploration followed by implementation",
+      "steps": [
+        { "agent": "plan:riff" },
+        { "agent": "tasks:coordinator", "iterations": 12 }
       ]
     }
   }
