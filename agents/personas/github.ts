@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { type McpServerConfig, query } from "@anthropic-ai/claude-agent-sdk";
 import { $ } from "bun";
 import { getClaudeExecutablePath } from "../../lib/claude";
-import systemPrompt from "../../prompts/github-examples.md" with {
+import systemPrompt from "../../system-prompts/github-examples.md" with {
 	type: "text",
 };
 

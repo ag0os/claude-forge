@@ -15,7 +15,7 @@ import {
 	spawnClaudeAndWait,
 } from "../../lib";
 import type { ClaudeFlags } from "../../lib/claude-flags.types";
-import expectationsPrompt from "../../prompts/expectations.md" with {
+import expectationsPrompt from "../../system-prompts/expectations.md" with {
 	type: "text",
 };
 

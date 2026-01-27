@@ -2,7 +2,9 @@
 import { parseArgs } from "node:util";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { getClaudeExecutablePath } from "../../lib/claude";
-import systemPrompt from "../../prompts/claude-mix.md" with { type: "text" };
+import systemPrompt from "../../system-prompts/claude-mix.md" with {
+	type: "text",
+};
 
 const args = parseArgs({
 	allowPositionals: true,

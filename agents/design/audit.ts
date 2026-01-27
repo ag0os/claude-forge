@@ -20,13 +20,13 @@ import {
 	spawnClaudeAndWait,
 } from "../../lib";
 import type { ClaudeFlags } from "../../lib/claude-flags.types";
-import expectationsDoc from "../../prompts/expectations.md" with {
-	type: "text",
-};
 import designAuditSettings from "../../settings/design-audit.settings.json" with {
 	type: "json",
 };
 import designAuditSystemPrompt from "../../system-prompts/design-audit-prompt.md" with {
+	type: "text",
+};
+import expectationsDoc from "../../system-prompts/expectations.md" with {
 	type: "text",
 };
 
