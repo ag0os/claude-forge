@@ -2,6 +2,10 @@
 
 A collection of TypeScript agents and utilities for enhancing Claude Code CLI functionality with custom configurations, MCP integrations, and specialized workflows.
 
+## Origins
+
+This project was originally forked from [johnlindquist/claude-workshop-live](https://github.com/johnlindquist/claude-workshop-live). It has since evolved significantly with new features including forge-tasks, forkhestra orchestration, agent namespacing, and many new agents. See [CHANGELOG-FROM-FORK.md](CHANGELOG-FROM-FORK.md) for details on what has changed.
+
 ## Prerequisites
 
 ### Install Bun
