@@ -31,7 +31,7 @@ npm install -g @anthropic-ai/claude-code
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/johnlindquist/claude-forge.git
+git clone https://github.com/ag0os/claude-forge.git
 cd claude-forge
 ```
 
