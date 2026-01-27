@@ -12,6 +12,7 @@ import SP_diagram_topic from '../system-prompts/diagram-topic-prompt.md' with { 
 import SP_forge_task_coordinator from '../system-prompts/forge-task-coordinator-prompt.md' with { type: 'text' }
 import SP_design_audit from '../system-prompts/design-audit-prompt.md' with { type: 'text' }
 import SP_forge_task_manager from '../system-prompts/forge-task-manager-prompt.md' with { type: 'text' }
+import SP_comment_review from '../system-prompts/comment-review-prompt.md' with { type: 'text' }
 import SP_brainstorm from '../system-prompts/brainstorm-prompt.md' with { type: 'text' }
 import SP_builder from '../system-prompts/builder-prompt.md' with { type: 'text' }
 import SP_diagram_consolidate from '../system-prompts/diagram-consolidate-prompt.md' with { type: 'text' }
@@ -33,6 +34,7 @@ import ST_refactor from '../settings/refactor.settings.json' with { type: 'json'
 import ST_orient from '../settings/orient.settings.json' with { type: 'json' }
 import ST_update_claudemd from '../settings/update-claudemd.settings.json' with { type: 'json' }
 import ST_forge_task_coordinator from '../settings/forge-task-coordinator.settings.json' with { type: 'json' }
+import ST_comment_review from '../settings/comment-review.settings.json' with { type: 'json' }
 import ST_builder from '../settings/builder.settings.json' with { type: 'json' }
 import ST_plan_coordinator from '../settings/plan-coordinator.settings.json' with { type: 'json' }
 import ST_brainstorm from '../settings/brainstorm.settings.json' with { type: 'json' }
@@ -64,6 +66,7 @@ import MCP_tdd_coordinator from '../settings/tdd-coordinator.mcp.json' with { ty
 export const SYSTEM_PROMPTS = {
   'brainstorm': SP_brainstorm,
   'builder': SP_builder,
+  'comment-review': SP_comment_review,
   'design-audit': SP_design_audit,
   'designer': SP_designer,
   'diagram-all': SP_diagram_all,
@@ -95,6 +98,7 @@ export const PROMPTS = {
 export const SETTINGS = {
   'brainstorm': ST_brainstorm,
   'builder': ST_builder,
+  'comment-review': ST_comment_review,
   'contain': ST_contain,
   'design-audit': ST_design_audit,
   'designer': ST_designer,
