@@ -57,6 +57,23 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `forge-tasks/` - Hybrid task management system (CLI + sub-agents). See [docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)
 - `forkhestra/` - Agent orchestration library for chaining and looping agents
 
+### Agent Namespacing
+
+Agents support namespacing via subdirectories. The directory structure determines the binary name:
+
+| Source Path | Binary Name |
+|-------------|-------------|
+| `agents/planner.ts` | `planner` |
+| `agents/forge-tasks/manager.ts` | `forge-tasks:manager` |
+| `agents/deep/nested/agent.ts` | `deep:nested:agent` |
+
+**Private agents**: Create `agents/local/` for personal agents that won't be committed (gitignored). Example: `agents/local/my-agent.ts` compiles to `local:my-agent`.
+
+**Usage with forkhestra**:
+```bash
+forkhestra "forge-tasks:manager -> forge-tasks:coordinator:10"
+```
+
 ## Forkhestra - Agent Orchestration
 
 Forkhestra provides two modes for orchestrating agents:

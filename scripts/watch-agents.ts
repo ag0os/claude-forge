@@ -2,8 +2,8 @@
 
 import { $ } from "bun";
 import { watch } from "fs";
-import { join, basename } from "path";
-import { readdir, unlink } from "fs/promises";
+import { join, basename, relative, dirname } from "path";
+import { readdir, unlink, stat } from "fs/promises";
 
 const agentsDir = join(process.cwd(), "agents");
 const promptsDir = join(process.cwd(), "prompts");
@@ -16,18 +16,64 @@ console.log(
 );
 console.log("Will rebuild ALL agents on any change in these directories");
 
-// Track existing agent files
-let knownAgents = new Set<string>();
+// Track existing agent files: Map<relativePath, binaryName>
+let knownAgents = new Map<string, string>();
+
+/**
+ * Convert a relative path to a namespaced binary name
+ * - Root level: agents/foo.ts → foo
+ * - Subdirectory: agents/forge-tasks/manager.ts → forge-tasks:manager
+ */
+function toBinaryName(relativePath: string): string {
+  const dir = dirname(relativePath);
+  const base = basename(relativePath, ".ts").replace(".tsx", "");
+
+  if (dir === ".") {
+    // Root level agent, no namespace
+    return base;
+  }
+
+  // Subdirectory agent, use colon-separated namespace
+  // Handle nested dirs: a/b/c.ts → a:b:c
+  const namespace = dir.split("/").join(":");
+  return `${namespace}:${base}`;
+}
+
+/**
+ * Recursively scan for agent files in a directory
+ */
+async function scanDirectory(dir: string, baseDir: string): Promise<Map<string, string>> {
+  const results = new Map<string, string>();
+
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        // Recurse into subdirectory
+        const subResults = await scanDirectory(fullPath, baseDir);
+        for (const [path, binary] of subResults) {
+          results.set(path, binary);
+        }
+      } else if (entry.isFile() && (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx"))) {
+        // Found an agent file
+        const relativePath = relative(baseDir, fullPath);
+        const binaryName = toBinaryName(relativePath);
+        results.set(relativePath, binaryName);
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to scan directory ${dir}:`, error);
+  }
+
+  return results;
+}
 
 // Function to get current agent files
-async function getCurrentAgents(): Promise<Set<string>> {
-  try {
-    const agents = await readdir(agentsDir);
-    return new Set(agents.filter(file => file.endsWith(".ts") || file.endsWith(".tsx")));
-  } catch (error) {
-    console.error("Failed to read agents directory:", error);
-    return new Set();
-  }
+async function getCurrentAgents(): Promise<Map<string, string>> {
+  return scanDirectory(agentsDir, agentsDir);
 }
 
 // Function to compile all agents and handle deletions
@@ -47,21 +93,20 @@ async function compileAllAgents() {
     const currentAgents = await getCurrentAgents();
 
     // Check for deleted agents
-    for (const knownAgent of knownAgents) {
-      if (!currentAgents.has(knownAgent)) {
+    for (const [relativePath, binaryName] of knownAgents) {
+      if (!currentAgents.has(relativePath)) {
         // Agent was deleted, remove corresponding bin file
-        const agentName = basename(knownAgent, ".ts").replace(".tsx", "");
-        const binPath = join(binDir, agentName);
+        const binPath = join(binDir, binaryName);
 
         try {
           await unlink(binPath);
-          console.log(`  ✓ Removed ${agentName} from bin directory`);
+          console.log(`  ✓ Removed ${binaryName} from bin directory`);
         } catch (error) {
           // File might already be gone or never existed
           if (error instanceof Error) {
-            console.log(`  ℹ Could not remove ${agentName} from bin directory:`, error.message);
+            console.log(`  ℹ Could not remove ${binaryName} from bin directory:`, error.message);
           } else {
-            console.log(`  ℹ Could not remove ${agentName} from bin directory:`, error);
+            console.log(`  ℹ Could not remove ${binaryName} from bin directory:`, error);
           }
         }
       }
@@ -78,18 +123,17 @@ async function compileAllAgents() {
     console.log(`Found ${currentAgents.size} agent(s) to compile`);
 
     // Compile all agents
-    for (const file of currentAgents) {
-      const agentName = basename(file, ".ts").replace(".tsx", "");
-      const filePath = join(agentsDir, file);
-      const outputPath = `./bin/${agentName}`;
+    for (const [relativePath, binaryName] of currentAgents) {
+      const filePath = join(agentsDir, relativePath);
+      const outputPath = `./bin/${binaryName}`;
 
-      console.log(`  Compiling ${agentName}...`);
+      console.log(`  Compiling ${binaryName}...`);
 
       try {
         await $`bun build --compile ${filePath} --outfile ${outputPath}`;
-        console.log(`  ✓ Compiled ${agentName}`);
+        console.log(`  ✓ Compiled ${binaryName}`);
       } catch (error) {
-        console.error(`  ✗ Failed to compile ${agentName}:`, error);
+        console.error(`  ✗ Failed to compile ${binaryName}:`, error);
       }
     }
 
@@ -162,6 +206,10 @@ process.on("SIGINT", () => {
 
 // Initialize known agents before first build
 knownAgents = await getCurrentAgents();
+console.log(`Discovered ${knownAgents.size} agent(s):`);
+for (const [relativePath, binaryName] of knownAgents) {
+  console.log(`  ${relativePath} → ${binaryName}`);
+}
 
 // Do an initial build
 console.log("Performing initial build...");
