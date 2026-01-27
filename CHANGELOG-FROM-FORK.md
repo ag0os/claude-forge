@@ -2,6 +2,10 @@
 
 This document describes the major changes made after forking from [johnlindquist/claude-workshop-live](https://github.com/johnlindquist/claude-workshop-live).
 
+## Why a New Repository?
+
+This project diverged significantly from the original and there were no plans to contribute changes back upstream. Additionally, GitHub's default PR behavior for forks kept opening pull requests against the original repository, which was not the intent. Creating a fresh, independent repository avoids this issue entirely.
+
 ## Original Fork
 
 Claude Forge was originally forked from `johnlindquist/claude-workshop-live`, a collection of agents and utilities for the Claude Code CLI. The original project provided a foundation of agent infrastructure including:
