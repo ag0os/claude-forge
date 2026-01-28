@@ -1,18 +1,17 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun";
-import { watch } from "fs";
+import { existsSync, watch } from "fs";
 import { join, basename, relative, dirname } from "path";
-import { readdir, unlink, stat } from "fs/promises";
+import { readdir, unlink } from "fs/promises";
 
 const agentsDir = join(process.cwd(), "agents");
-const promptsDir = join(process.cwd(), "prompts");
 const systemPromptsDir = join(process.cwd(), "system-prompts");
 const settingsDir = join(process.cwd(), "settings");
 const binDir = join(process.cwd(), "bin");
 
 console.log(
-  `Watching agents, prompts, system-prompts, settings for changes...`,
+  `Watching agents, system-prompts, settings for changes...`,
 );
 console.log("Will rebuild ALL agents on any change in these directories");
 
@@ -157,50 +156,48 @@ function debouncedRebuild(dir: string, filename?: string) {
   }, 100); // Wait 100ms after last change
 }
 
-// Create watchers
+// Create watchers (only for directories that exist)
+const watchers: ReturnType<typeof watch>[] = [];
+
 const agentsWatcher = watch(agentsDir, { recursive: true }, (event, filename) => {
   if (filename && (filename.endsWith('.ts') || filename.endsWith('.tsx'))) {
     debouncedRebuild('agents', filename);
   }
 });
+watchers.push(agentsWatcher);
 
-const promptsWatcher = watch(
-  promptsDir,
-  { recursive: true },
-  (event, filename) => {
-    if (filename && filename.endsWith('.md')) {
-      debouncedRebuild('prompts', filename);
-    }
-  },
-);
+if (existsSync(systemPromptsDir)) {
+  const systemPromptsWatcher = watch(
+    systemPromptsDir,
+    { recursive: true },
+    (event, filename) => {
+      if (filename && filename.endsWith('.md')) {
+        debouncedRebuild('system-prompts', filename);
+      }
+    },
+  );
+  watchers.push(systemPromptsWatcher);
+}
 
-const systemPromptsWatcher = watch(
-  systemPromptsDir,
-  { recursive: true },
-  (event, filename) => {
-    if (filename && filename.endsWith('.md')) {
-      debouncedRebuild('system-prompts', filename);
-    }
-  },
-);
-
-const settingsWatcher = watch(
-  settingsDir,
-  { recursive: true },
-  (event, filename) => {
-    if (filename && (filename.endsWith('.json'))) {
-      debouncedRebuild('settings', filename);
-    }
-  },
-);
+if (existsSync(settingsDir)) {
+  const settingsWatcher = watch(
+    settingsDir,
+    { recursive: true },
+    (event, filename) => {
+      if (filename && (filename.endsWith('.json'))) {
+        debouncedRebuild('settings', filename);
+      }
+    },
+  );
+  watchers.push(settingsWatcher);
+}
 
 // Handle process termination
 process.on("SIGINT", () => {
   console.log("\nStopping watchers...");
-  agentsWatcher.close();
-  promptsWatcher.close();
-  systemPromptsWatcher.close();
-  settingsWatcher.close();
+  for (const watcher of watchers) {
+    watcher.close();
+  }
   process.exit(0);
 });
 
