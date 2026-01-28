@@ -203,7 +203,8 @@ async function runOnce(
 	cwd?: string,
 	verbose?: boolean,
 ): Promise<{ exitCode: number }> {
-	const proc = spawn([agent, ...args], {
+	// Pass --print and --dangerously-skip-permissions so agents run non-interactively
+	const proc = spawn([agent, "--print", "--dangerously-skip-permissions", ...args], {
 		stdin: "inherit",
 		stdout: "inherit",
 		stderr: "inherit",
@@ -228,7 +229,8 @@ async function runOnceWithMarkerDetection(
 	verbose?: boolean,
 	onProcessStart?: (proc: Subprocess) => void,
 ): Promise<SingleRunResult> {
-	const proc = spawn([agent, ...args], {
+	// Pass --print and --dangerously-skip-permissions so agents run non-interactively
+	const proc = spawn([agent, "--print", "--dangerously-skip-permissions", ...args], {
 		stdin: "inherit",
 		stdout: "pipe",
 		stderr: "inherit",
