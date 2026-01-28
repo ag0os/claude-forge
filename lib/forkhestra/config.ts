@@ -151,15 +151,20 @@ async function loadFromForgeConfig(
 ): Promise<ForkhestraConfig | null> {
 	try {
 		// Use Bun shell to execute util:forge-config chains
-		// Set quiet to suppress stderr and nothrow to prevent exceptions on non-zero exit
-		const result = await $`util:forge-config chains`.quiet().nothrow();
+		// nothrow prevents exceptions on non-zero exit
+		const result = await $`util:forge-config chains`.nothrow();
 
 		// Check if command was successful
 		if (result.exitCode !== 0) {
 			if (verbose) {
+				const stderr = result.stderr.toString().trim();
 				console.log(
 					`[forkhestra] util:forge-config chains failed with exit code ${result.exitCode}`
 				);
+				if (stderr) {
+					console.log(`[forkhestra] stderr: ${stderr}`);
+				}
+				console.log(`[forkhestra] PATH: ${process.env.PATH}`);
 			}
 			return null;
 		}
@@ -197,6 +202,7 @@ async function loadFromForgeConfig(
 			console.log(
 				`[forkhestra] util:forge-config not available: ${error instanceof Error ? error.message : String(error)}`
 			);
+			console.log(`[forkhestra] PATH: ${process.env.PATH}`);
 		}
 		return null;
 	}
