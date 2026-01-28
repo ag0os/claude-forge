@@ -290,11 +290,18 @@ async function main() {
 				console.error(`[forkhestra] Error: No chain configuration found.`);
 				console.error(`  Checked: ${cwd}/forge/chains.json (not found)`);
 				console.error(
-					`  Checked: forge-config chains (not available or failed)`,
+					`  Checked: forge-config chains (not in PATH or returned error)`,
+				);
+				console.error(``);
+				console.error(`  To fix, either:`);
+				console.error(
+					`    1. Create a local forge/chains.json in your project`,
 				);
 				console.error(
-					`  Create a local forge/chains.json or install forge-config globally.`,
+					`    2. Install forge-config globally (add claude-forge/bin to PATH)`,
 				);
+				console.error(``);
+				console.error(`  Run with --verbose for detailed resolution logs.`);
 				process.exit(EXIT_ERROR);
 			}
 

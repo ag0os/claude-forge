@@ -3,8 +3,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import chains from "../../forge/chains.json" with { type: "json" };
+import packageJson from "../../package.json" with { type: "json" };
 
-const VERSION = "0.1.0";
 const command = process.argv[2];
 
 /**
@@ -63,7 +63,7 @@ switch (command) {
 		break;
 	}
 	case "version":
-		console.log(`forge-config ${VERSION}`);
+		console.log(`forge-config ${packageJson.version}`);
 		break;
 	default:
 		console.error("Usage: forge-config <chains|agents|path|version>");

@@ -526,6 +526,62 @@ describe("variable substitution in prompt fields", () => {
 	});
 });
 
+describe("config resolution fallback", () => {
+	const emptyDir = "/tmp/forkhestra-config-test-empty";
+
+	beforeAll(() => {
+		mkdirSync(emptyDir, { recursive: true });
+	});
+
+	afterAll(() => {
+		rmSync(emptyDir, { recursive: true, force: true });
+	});
+
+	test("returns null when no local config and forge-config not available", async () => {
+		// emptyDir has no forge/chains.json and forge-config is not in PATH during tests
+		const config = await loadConfig(emptyDir);
+		expect(config).toBeNull();
+	});
+
+	test("returns null when directory does not exist", async () => {
+		const config = await loadConfig("/nonexistent/path/that/does/not/exist");
+		expect(config).toBeNull();
+	});
+
+	test("local config takes precedence over forge-config", async () => {
+		// Write a local config with a unique marker
+		writeConfig({
+			chains: {
+				"local-chain": {
+					description: "This is from local config",
+					steps: [{ agent: "local-agent" }],
+				},
+			},
+		});
+
+		const config = await loadConfig(tmpDir);
+
+		// Should load the local config, not forge-config
+		expect(config?.chains["local-chain"]).toBeDefined();
+		expect(config?.chains["local-chain"]?.description).toBe(
+			"This is from local config"
+		);
+	});
+
+	test("verbose mode does not throw when config not found", async () => {
+		// Should not throw, just return null
+		const config = await loadConfig(emptyDir, { verbose: true });
+		expect(config).toBeNull();
+	});
+
+	test("loadConfig with verbose option logs resolution attempts", async () => {
+		// This test verifies verbose option is accepted and doesn't break anything
+		// We can't easily capture console.log in bun:test, so we just verify it runs
+		const config = await loadConfig(tmpDir, { verbose: true });
+		expect(config).not.toBeNull();
+	});
+});
+
 describe("complete config with all prompt fields", () => {
 	test("loads config with prompts at all levels", async () => {
 		writeConfig({
