@@ -28,6 +28,7 @@ import { join, normalize } from "node:path";
 import { $, spawn, type Subprocess } from "bun";
 import type { ClaudeFlags } from "./claude-flags.types";
 import { buildClaudeFlags } from "./flags";
+import { getForgeRoot } from "./forge-root";
 
 /**
  * Get the path to the Claude CLI executable.
@@ -153,6 +154,7 @@ export function spawnClaude(options: SpawnClaudeOptions = {}): SpawnClaudeResult
     cwd,
     env: {
       ...globalThis.process.env,
+      CLAUDE_FORGE_DIR: getForgeRoot(),
       ...env,
       TMPDIR: cleanTmpDir,
     },

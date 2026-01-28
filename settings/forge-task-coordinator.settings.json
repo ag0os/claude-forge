@@ -12,5 +12,29 @@
 		],
 		"deny": []
 	},
-	"systemPromptFiles": ["system-prompts/forge-task-coordinator-prompt.md"]
+	"systemPromptFiles": ["system-prompts/forge-task-coordinator-prompt.md"],
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun run $CLAUDE_FORGE_DIR/hooks/coordinator-progress.ts"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"matcher": "*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bun run $CLAUDE_FORGE_DIR/hooks/coordinator-complete.ts"
+					}
+				]
+			}
+		]
+	}
 }

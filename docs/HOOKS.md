@@ -328,7 +328,7 @@ In your agent's settings file (e.g., `settings/my-agent.settings.json`):
         "hooks": [
           {
             "type": "command",
-            "command": "bun run $CLAUDE_PROJECT_DIR/hooks/YourHookName.ts"
+            "command": "bun run $CLAUDE_FORGE_DIR/hooks/YourHookName.ts"
           }
         ]
       }
@@ -336,6 +336,8 @@ In your agent's settings file (e.g., `settings/my-agent.settings.json`):
   }
 }
 ```
+
+**Important:** Use `$CLAUDE_FORGE_DIR` (not `$CLAUDE_PROJECT_DIR`) for hooks. This environment variable always points to the claude-forge installation directory, ensuring hooks work regardless of which directory the agent runs from.
 
 ### Step 4: Pass settings to agent
 
@@ -356,6 +358,21 @@ const flags = buildClaudeFlags({
 bun compile agents/my-agent.ts
 ./bin/my-agent
 ```
+
+---
+
+## Environment Variables
+
+Two key environment variables are available in hook commands:
+
+| Variable | Description | Example Value |
+|----------|-------------|---------------|
+| `CLAUDE_FORGE_DIR` | The claude-forge installation directory. Use this for hooks and framework resources. | `/Users/you/Projects/claude-forge` |
+| `CLAUDE_PROJECT_DIR` | The directory where the agent is running (target project). Use this for project-specific paths. | `/Users/you/Projects/my-app` |
+
+**When to use which:**
+- `$CLAUDE_FORGE_DIR/hooks/...` - For hook scripts that live in the framework
+- `$CLAUDE_PROJECT_DIR/.claude/...` - For project-specific resources
 
 ---
 

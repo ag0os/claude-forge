@@ -1,31 +1,12 @@
 #!/usr/bin/env -S bun run
 
 import { existsSync, readdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import chains from "../../forge/chains.json" with { type: "json" };
+import { getForgeRoot } from "../../lib/forge-root";
 import packageJson from "../../package.json" with { type: "json" };
 
 const command = process.argv[2];
-
-/**
- * Resolves the claude-forge root directory.
- * - When compiled: uses process.execPath (binary in bin/) and goes up one level
- * - When running via bun: uses import.meta.dir (agents/util/) and goes up two levels
- */
-function getForgeRoot(): string {
-	// Check if running as compiled binary by looking for bun's virtual filesystem
-	const isCompiled = import.meta.dir.startsWith("/$bunfs");
-
-	if (isCompiled) {
-		// Compiled binary: process.execPath is /path/to/claude-forge/bin/util:forge-config
-		// Go up one level from bin/ to get forge root
-		return resolve(dirname(process.execPath), "..");
-	}
-
-	// Running via bun: import.meta.dir is /path/to/claude-forge/agents/util
-	// Go up two levels to get forge root
-	return resolve(import.meta.dir, "../..");
-}
 
 switch (command) {
 	case "chains":

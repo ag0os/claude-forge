@@ -152,7 +152,8 @@ Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on it
 - Agents use `spawn()` to launch Claude CLI with custom settings
 - Settings and MCP configs are stored as JSON in `settings/`
 - Use `resolvePath()` pattern for resolving relative paths in agents
-- Pass environment variables like `CLAUDE_PROJECT_DIR` to spawned processes
+- `CLAUDE_FORGE_DIR` is automatically set to the framework root (use in hooks)
+- `CLAUDE_PROJECT_DIR` points to the target project directory
 - Always handle SIGINT/SIGTERM for clean subprocess termination
 - When working with containers, always merge changes back with `container-use merge <branch-name>`
 - Container environments don't include uncommitted changes - commit first if needed
