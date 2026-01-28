@@ -284,11 +284,16 @@ async function main() {
 
 	try {
 		if (chainName) {
-			// Config mode: load chain from forge/chains.json
-			const config = await loadConfig(cwd);
+			// Config mode: load chain from forge/chains.json with fallback to forge-config
+			const config = await loadConfig(cwd, { verbose });
 			if (!config) {
+				console.error(`[forkhestra] Error: No chain configuration found.`);
+				console.error(`  Checked: ${cwd}/forge/chains.json (not found)`);
 				console.error(
-					`[forkhestra] Error: No forge/chains.json found in ${cwd}`,
+					`  Checked: forge-config chains (not available or failed)`,
+				);
+				console.error(
+					`  Create a local forge/chains.json or install forge-config globally.`,
 				);
 				process.exit(EXIT_ERROR);
 			}

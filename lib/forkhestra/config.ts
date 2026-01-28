@@ -2,11 +2,17 @@
  * Config loader for forkhestra chain definitions
  *
  * Loads and validates forge/chains.json configuration file.
+ * Uses fallback resolution:
+ * 1. Local ./forge/chains.json (project-specific override)
+ * 2. forge-config chains output (global shared config)
+ * 3. Returns null if neither found
+ *
  * Handles variable substitution in args using ${VAR} syntax.
  */
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { $ } from "bun";
 
 /**
  * Represents a single step in a chain
@@ -53,48 +59,147 @@ export interface ForkhestraConfig {
 	agents?: Record<string, AgentConfig>;
 }
 
+/**
+ * Options for loadConfig function
+ */
+export interface LoadConfigOptions {
+	/** Enable verbose output showing which config source was used */
+	verbose?: boolean;
+}
+
 const CONFIG_PATH = "forge/chains.json";
 
 /**
- * Load configuration from forge/chains.json relative to the provided cwd.
+ * Load configuration from forge/chains.json relative to the provided cwd,
+ * with fallback to forge-config chains command.
+ *
+ * Resolution order:
+ * 1. Local ./forge/chains.json (project-specific override)
+ * 2. forge-config chains output (global shared config)
+ * 3. Returns null if neither found
  *
  * @param cwd - Working directory to load config relative to
- * @returns Parsed and validated config, or null if file doesn't exist
+ * @param options - Optional configuration options (verbose mode)
+ * @returns Parsed and validated config, or null if no config found
  * @throws Error on invalid JSON syntax
  * @throws Error on invalid schema structure
  */
 export async function loadConfig(
-	cwd: string
+	cwd: string,
+	options?: LoadConfigOptions
 ): Promise<ForkhestraConfig | null> {
+	const verbose = options?.verbose ?? false;
 	const configPath = join(cwd, CONFIG_PATH);
 
-	// Return null if file doesn't exist (not an error condition)
-	if (!existsSync(configPath)) {
+	// 1. Try local config first (takes precedence)
+	if (existsSync(configPath)) {
+		if (verbose) {
+			console.log(`[forkhestra] Loading config from local: ${configPath}`);
+		}
+
+		// Read and parse the file
+		let rawContent: string;
+		try {
+			rawContent = await Bun.file(configPath).text();
+		} catch (error) {
+			throw new Error(
+				`Failed to read config file at ${configPath}: ${error instanceof Error ? error.message : String(error)}`
+			);
+		}
+
+		// Parse JSON
+		let rawConfig: unknown;
+		try {
+			rawConfig = JSON.parse(rawContent);
+		} catch (error) {
+			throw new Error(
+				`Invalid JSON in config file at ${configPath}: ${error instanceof Error ? error.message : String(error)}`
+			);
+		}
+
+		// Validate and transform the config
+		return validateAndTransformConfig(rawConfig, configPath);
+	}
+
+	// 2. Try forge-config chains as fallback
+	if (verbose) {
+		console.log(
+			"[forkhestra] Local config not found, trying forge-config chains..."
+		);
+	}
+
+	const globalResult = await loadFromForgeConfig(verbose);
+	if (globalResult) {
+		return globalResult;
+	}
+
+	// 3. No config found
+	if (verbose) {
+		console.log("[forkhestra] No config found from any source");
+	}
+	return null;
+}
+
+/**
+ * Load configuration from forge-config chains command.
+ *
+ * @param verbose - Whether to log verbose output
+ * @returns Parsed config or null if forge-config is not available or fails
+ */
+async function loadFromForgeConfig(
+	verbose: boolean
+): Promise<ForkhestraConfig | null> {
+	try {
+		// Use Bun shell to execute forge-config chains
+		// Set quiet to suppress stderr and nothrow to prevent exceptions on non-zero exit
+		const result = await $`forge-config chains`.quiet().nothrow();
+
+		// Check if command was successful
+		if (result.exitCode !== 0) {
+			if (verbose) {
+				console.log(
+					`[forkhestra] forge-config chains failed with exit code ${result.exitCode}`
+				);
+			}
+			return null;
+		}
+
+		const output = result.stdout.toString().trim();
+		if (!output) {
+			if (verbose) {
+				console.log("[forkhestra] forge-config chains returned empty output");
+			}
+			return null;
+		}
+
+		// Parse JSON output
+		let rawConfig: unknown;
+		try {
+			rawConfig = JSON.parse(output);
+		} catch (error) {
+			if (verbose) {
+				console.log(
+					`[forkhestra] forge-config chains returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+				);
+			}
+			return null;
+		}
+
+		if (verbose) {
+			console.log("[forkhestra] Loaded config from forge-config chains");
+		}
+
+		// Validate and transform the config
+		return validateAndTransformConfig(rawConfig, "forge-config chains");
+	} catch (error) {
+		// This catches errors like "command not found" when forge-config is not in PATH
+		if (verbose) {
+			console.log(
+				`[forkhestra] forge-config not available: ${error instanceof Error ? error.message : String(error)}`
+			);
+		}
 		return null;
 	}
-
-	// Read and parse the file
-	let rawContent: string;
-	try {
-		rawContent = await Bun.file(configPath).text();
-	} catch (error) {
-		throw new Error(
-			`Failed to read config file at ${configPath}: ${error instanceof Error ? error.message : String(error)}`
-		);
-	}
-
-	// Parse JSON
-	let rawConfig: unknown;
-	try {
-		rawConfig = JSON.parse(rawContent);
-	} catch (error) {
-		throw new Error(
-			`Invalid JSON in config file at ${configPath}: ${error instanceof Error ? error.message : String(error)}`
-		);
-	}
-
-	// Validate and transform the config
-	return validateAndTransformConfig(rawConfig, configPath);
 }
 
 /**
@@ -446,7 +551,7 @@ export function getChain(config: ForkhestraConfig, name: string): ChainStep[] {
 }
 
 /**
- * Substitute ${VAR_NAME} placeholders in step args and prompt fields with provided variable values.
+ * Substitute \${VAR_NAME} placeholders in step args and prompt fields with provided variable values.
  *
  * @param steps - Array of ChainStep objects to process
  * @param vars - Record of variable names to values
@@ -486,7 +591,7 @@ export function substituteVars(
 }
 
 /**
- * Substitute ${VAR_NAME} placeholders in chain-level prompt fields with provided variable values.
+ * Substitute \${VAR_NAME} placeholders in chain-level prompt fields with provided variable values.
  *
  * @param chain - The ChainConfig to process
  * @param vars - Record of variable names to values
@@ -516,7 +621,7 @@ export function substituteVarsInChain(
 }
 
 /**
- * Substitute ${VAR_NAME} placeholders in a single string.
+ * Substitute \${VAR_NAME} placeholders in a single string.
  *
  * @param str - The string to process
  * @param vars - Record of variable names to values
@@ -529,7 +634,7 @@ function substituteVarsInString(
 	vars: Record<string, string>,
 	context: string
 ): string {
-	// Match ${VAR_NAME} pattern
+	// Match \${VAR_NAME} pattern
 	const varPattern = /\$\{([A-Z_][A-Z0-9_]*)\}/g;
 
 	return str.replace(varPattern, (match, varName: string): string => {
