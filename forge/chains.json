@@ -82,6 +82,15 @@
         { "agent": "review:pr" },
         { "agent": "git:fix" }
       ]
+    },
+    "build-and-pr": {
+      "description": "Coordinate task implementation, then create and review a PR.",
+      "steps": [
+        { "agent": "tasks:coordinator", "iterations": 15 },
+        { "agent": "git:pr" },
+        { "agent": "review:pr" },
+        { "agent": "git:fix" }
+      ]
     }
   }
 }
