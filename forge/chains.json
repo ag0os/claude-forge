@@ -91,6 +91,16 @@
         { "agent": "review:pr" },
         { "agent": "git:fix" }
       ]
+    },
+    "plan-to-pr": {
+      "description": "Create tasks from a plan file, implement them, and create a reviewed PR.",
+      "steps": [
+        { "agent": "tasks:manager", "iterations": 2, "prompt": "Create tasks from ${PLAN_FILE}" },
+        { "agent": "tasks:coordinator", "iterations": 2, "prompt": "Implement tasks from ${PLAN_FILE}" },
+        { "agent": "git:pr" },
+        { "agent": "review:pr" },
+        { "agent": "git:fix" }
+      ]
     }
   }
 }
