@@ -9,10 +9,11 @@
  * - Project guideline compliance (CLAUDE.md, CONTRIBUTING.md, etc.)
  *
  * Usage:
+ *   bun run agents/review/pr.ts              # Auto-detect PR for current branch
  *   bun run agents/review/pr.ts <PR_URL_OR_NUMBER>
  *   bun run agents/review/pr.ts 123
  *   bun run agents/review/pr.ts https://github.com/owner/repo/pull/123
- *   bun run agents/review/pr.ts 123 --comment  # Post summary if no issues found
+ *   bun run agents/review/pr.ts --comment    # Post summary if no issues found
  */
 
 import {
@@ -31,6 +32,25 @@ import prReviewSystemPrompt from "../../system-prompts/pr-review-prompt.md" with
 
 // Claude-specific guideline files
 const GUIDELINE_FILES = ["CLAUDE.md", "AGENTS.md"];
+
+/**
+ * Get the PR number for the current branch using gh CLI
+ */
+async function getCurrentBranchPR(): Promise<string | null> {
+	const proc = Bun.spawn(
+		["gh", "pr", "view", "--json", "number", "-q", ".number"],
+		{
+			stdout: "pipe",
+			stderr: "pipe",
+		},
+	);
+	const exitCode = await proc.exited;
+	if (exitCode !== 0) {
+		return null;
+	}
+	const output = await new Response(proc.stdout).text();
+	return output.trim() || null;
+}
 
 function buildReviewPrompt(prRef: string, postComment: boolean): string {
 	const guidelineFilesStr = GUIDELINE_FILES.map((f) => `- ${f}`).join("\n");
@@ -167,14 +187,24 @@ Do NOT flag these (they are false positives):
 
 async function main() {
 	const positionals = getPositionals();
-	const prRef = positionals[0];
+	let prRef = positionals[0];
 
+	// Auto-detect PR for current branch if no argument provided
 	if (!prRef) {
-		console.error("Usage: pr-review <PR_URL_OR_NUMBER>");
-		console.error("Examples:");
-		console.error("  pr-review 123");
-		console.error("  pr-review https://github.com/owner/repo/pull/123");
-		process.exit(1);
+		const detectedPR = await getCurrentBranchPR();
+		if (!detectedPR) {
+			console.error("No PR found for current branch.");
+			console.error("Usage: review:pr [PR_URL_OR_NUMBER]");
+			console.error("Examples:");
+			console.error(
+				"  review:pr           # Auto-detect PR for current branch",
+			);
+			console.error("  review:pr 123");
+			console.error("  review:pr https://github.com/owner/repo/pull/123");
+			process.exit(1);
+		}
+		console.log(`Detected PR #${detectedPR} for current branch`);
+		prRef = detectedPR;
 	}
 
 	// Check for --comment flag
