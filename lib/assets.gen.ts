@@ -16,6 +16,7 @@ import SP_comment_review from '../system-prompts/comment-review-prompt.md' with 
 import SP_brainstorm from '../system-prompts/brainstorm-prompt.md' with { type: 'text' }
 import SP_builder from '../system-prompts/builder-prompt.md' with { type: 'text' }
 import SP_diagram_consolidate from '../system-prompts/diagram-consolidate-prompt.md' with { type: 'text' }
+import SP_pr_review from '../system-prompts/pr-review-prompt.md' with { type: 'text' }
 import SP_tdd_coordinator from '../system-prompts/tdd-coordinator-prompt.md' with { type: 'text' }
 import SP_prompt_improver from '../system-prompts/prompt-improver-prompt.md' with { type: 'text' }
 import SP_rails_backlog_coordinator from '../system-prompts/rails-backlog-coordinator-prompt.md' with { type: 'text' }
@@ -23,12 +24,6 @@ import SP_diagram_all from '../system-prompts/diagram-all-prompt.md' with { type
 import SP_fix from '../system-prompts/fix-prompt.md' with { type: 'text' }
 import SP_feature from '../system-prompts/feature-prompt.md' with { type: 'text' }
 import SP_plan_coordinator from '../system-prompts/plan-coordinator-prompt.md' with { type: 'text' }
-import PR_expectations from '../prompts/expectations.md' with { type: 'text' }
-import PR_refactor_prompt from '../prompts/refactor-prompt.md' with { type: 'text' }
-import PR_claude_mix from '../prompts/claude-mix.md' with { type: 'text' }
-import PR_script_kit_gen from '../prompts/script-kit-gen.md' with { type: 'text' }
-import PR_cc from '../prompts/cc.md' with { type: 'text' }
-import PR_github_examples from '../prompts/github-examples.md' with { type: 'text' }
 import ST_contain from '../settings/contain.settings.json' with { type: 'json' }
 import ST_refactor from '../settings/refactor.settings.json' with { type: 'json' }
 import ST_orient from '../settings/orient.settings.json' with { type: 'json' }
@@ -42,6 +37,7 @@ import ST_diagram_all from '../settings/diagram-all.settings.json' with { type: 
 import ST_forge_task_worker from '../settings/forge-task-worker.settings.json' with { type: 'json' }
 import ST_diagram_topic from '../settings/diagram-topic.settings.json' with { type: 'json' }
 import ST_design_audit from '../settings/design-audit.settings.json' with { type: 'json' }
+import ST_pr_review from '../settings/pr-review.settings.json' with { type: 'json' }
 import ST_planner from '../settings/planner.settings.json' with { type: 'json' }
 import ST_designer from '../settings/designer.settings.json' with { type: 'json' }
 import ST_tdd_coordinator from '../settings/tdd-coordinator.settings.json' with { type: 'json' }
@@ -80,6 +76,7 @@ export const SYSTEM_PROMPTS = {
   'orient': SP_orient,
   'plan-coordinator': SP_plan_coordinator,
   'planner': SP_planner,
+  'pr-review': SP_pr_review,
   'prompt-improver': SP_prompt_improver,
   'rails-backlog-coordinator': SP_rails_backlog_coordinator,
   'refactor': SP_refactor,
@@ -88,12 +85,6 @@ export const SYSTEM_PROMPTS = {
   'update-claudemd': SP_update_claudemd
 };
 export const PROMPTS = {
-  'cc': PR_cc,
-  'claude-mix': PR_claude_mix,
-  'expectations': PR_expectations,
-  'github-examples': PR_github_examples,
-  'refactor-prompt': PR_refactor_prompt,
-  'script-kit-gen': PR_script_kit_gen
 };
 export const SETTINGS = {
   'brainstorm': ST_brainstorm,
@@ -111,6 +102,7 @@ export const SETTINGS = {
   'orient': ST_orient,
   'plan-coordinator': ST_plan_coordinator,
   'planner': ST_planner,
+  'pr-review': ST_pr_review,
   'rails-backlog': ST_rails_backlog,
   'refactor': ST_refactor,
   'tdd-coordinator': ST_tdd_coordinator,
