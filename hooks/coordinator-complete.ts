@@ -5,7 +5,7 @@
  * This ensures the marker is always output, regardless of whether
  * the model remembers to output it.
  */
-import type { StopHookInput } from "@anthropic-ai/claude-code";
+import type { StopHookInput } from "@anthropic-ai/claude-agent-sdk";
 
 const input = (await Bun.stdin.json()) as StopHookInput;
 

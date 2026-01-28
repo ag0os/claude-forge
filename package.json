@@ -28,8 +28,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.62",
-    "@anthropic-ai/claude-code": "^2.0.72",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.22",
     "@anthropic-ai/sdk": "^0.57.0",
     "@google/genai": "^1.11.0",
     "boxen": "^8.0.1",

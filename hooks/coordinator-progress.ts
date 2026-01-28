@@ -5,7 +5,7 @@
  * - Task tool is used (delegations to sub-agents)
  * - Bash tool runs forge-tasks commands
  */
-import type { PostToolUseHookInput } from "@anthropic-ai/claude-code";
+import type { PostToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
 
 const input = (await Bun.stdin.json()) as PostToolUseHookInput;
 

@@ -4,8 +4,7 @@
     "": {
       "name": "claude-workshop-live",
       "dependencies": {
-        "@anthropic-ai/claude-agent-sdk": "^0.1.62",
-        "@anthropic-ai/claude-code": "^2.0.72",
+        "@anthropic-ai/claude-agent-sdk": "^0.2.22",
         "@anthropic-ai/sdk": "^0.57.0",
         "@google/genai": "^1.11.0",
         "boxen": "^8.0.1",
@@ -36,9 +35,7 @@
   "packages": {
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.2.0", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-qI/5TaaaCZE4yeSZ83lu0+xi1r88JSxUjnH4OP/iZF7+KKZ75u3ee5isd0LxX+6N8U0npL61YrpbthILHB6BnA=="],
 
-    "@anthropic-ai/claude-agent-sdk": ["@anthropic-ai/claude-agent-sdk@0.1.62", "", { "optionalDependencies": { "@img/sharp-darwin-arm64": "^0.33.5", "@img/sharp-darwin-x64": "^0.33.5", "@img/sharp-linux-arm": "^0.33.5", "@img/sharp-linux-arm64": "^0.33.5", "@img/sharp-linux-x64": "^0.33.5", "@img/sharp-linuxmusl-arm64": "^0.33.5", "@img/sharp-linuxmusl-x64": "^0.33.5", "@img/sharp-win32-x64": "^0.33.5" }, "peerDependencies": { "zod": "^3.24.1" } }, "sha512-KoJAQ0kdrbOukh4r0CFvFZgSKlAGAVJf8baeK2jpFCxbUhqr99Ier88v1L2iehWSWkXR6oVaThCYozN74Q3jUw=="],
-
-    "@anthropic-ai/claude-code": ["@anthropic-ai/claude-code@2.0.72", "", { "optionalDependencies": { "@img/sharp-darwin-arm64": "^0.33.5", "@img/sharp-darwin-x64": "^0.33.5", "@img/sharp-linux-arm": "^0.33.5", "@img/sharp-linux-arm64": "^0.33.5", "@img/sharp-linux-x64": "^0.33.5", "@img/sharp-linuxmusl-arm64": "^0.33.5", "@img/sharp-linuxmusl-x64": "^0.33.5", "@img/sharp-win32-x64": "^0.33.5" }, "bin": { "claude": "cli.js" } }, "sha512-ysJYyeyqePMUUL2/6j6yOpowk+9qhL7AaW9Betmt4K+MrK42tvNdOXLUlvxdMs05CCbvuCRqzVll4SNVQealmg=="],
+    "@anthropic-ai/claude-agent-sdk": ["@anthropic-ai/claude-agent-sdk@0.2.22", "", { "optionalDependencies": { "@img/sharp-darwin-arm64": "^0.33.5", "@img/sharp-darwin-x64": "^0.33.5", "@img/sharp-linux-arm": "^0.33.5", "@img/sharp-linux-arm64": "^0.33.5", "@img/sharp-linux-x64": "^0.33.5", "@img/sharp-linuxmusl-arm64": "^0.33.5", "@img/sharp-linuxmusl-x64": "^0.33.5", "@img/sharp-win32-x64": "^0.33.5" }, "peerDependencies": { "zod": "^4.0.0" } }, "sha512-AO39PYe8nAfqx748UmQQ26BZAX91sOQomYFdtf5AwMwgOIH0BumrNHsHtrmgBZalsseWn84LAFfKtG5ylGR5Nw=="],
 
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.57.0", "", { "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-z5LMy0MWu0+w2hflUgj4RlJr1R+0BxKXL7ldXTO8FasU8fu599STghO+QKwId2dAD0d464aHtU+ChWuRHw4FNw=="],
 

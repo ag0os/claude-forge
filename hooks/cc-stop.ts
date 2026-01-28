@@ -1,4 +1,4 @@
-import type { StopHookInput } from "@anthropic-ai/claude-code";
+import type { StopHookInput } from "@anthropic-ai/claude-agent-sdk";
 // import { tmpdir } from "node:os";
 // import { join } from "node:path";
 
