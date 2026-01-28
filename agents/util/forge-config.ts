@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bun run
 
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import chains from "../../forge/chains.json" with { type: "json" };
 
@@ -31,11 +31,20 @@ switch (command) {
 	case "chains":
 		console.log(JSON.stringify(chains, null, 2));
 		break;
-	case "agents":
-		// To be implemented in TASK-023
-		console.error("Not implemented yet. See TASK-023.");
-		process.exit(1);
+	case "agents": {
+		// Get bin directory from forge root
+		const forgePath = getForgeRoot();
+		const binDir = resolve(forgePath, "bin");
+		const files = readdirSync(binDir);
+
+		// Filter out hidden files, sort alphabetically, and output one per line
+		const agents = files.filter((f) => !f.startsWith(".")).sort();
+
+		for (const agent of agents) {
+			console.log(agent);
+		}
 		break;
+	}
 	case "path": {
 		const forgePath = getForgeRoot();
 		if (!existsSync(forgePath)) {
