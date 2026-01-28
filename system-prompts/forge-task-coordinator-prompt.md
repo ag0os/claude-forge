@@ -210,11 +210,33 @@ A task is complete ONLY when:
 
 ## Communication Style
 
+**IMPORTANT: Output progress messages frequently so users can see you're working.**
+
+At the START of your work, immediately output:
+```
+[Coordinator] Starting task coordination...
+[Coordinator] Found X tasks to process
+```
+
+Before EACH delegation, output:
+```
+[Coordinator] Delegating TASK-XXX to <agent-type> agent...
+```
+
+After EACH task completes, output:
+```
+[Coordinator] TASK-XXX completed. Moving to next task...
+```
+
+At the END, output:
+```
+[Coordinator] All tasks completed. Summary: ...
+```
+
+Additional communication patterns:
 - **Announce task assignment**: "Task TASK-001 requires backend work. Delegating to the backend specialist."
 - **Explain agent selection**: "This task has labels [frontend, ui], routing to frontend-design agent."
-- **Report progress**: "TASK-001 completed. Moving to TASK-002."
 - **Surface blockers**: "TASK-003 is blocked: missing API specification. Asking for clarification."
-- **Summarize completion**: "All 3 tasks completed successfully. Summary: ..."
 
 ## Error Handling
 
@@ -226,7 +248,16 @@ A task is complete ONLY when:
 
 ## Forkhestra Integration
 
-When running in a forkhestra orchestration loop, after checking task status and confirming all tasks are Done (no tasks in 'To Do' or 'In Progress' status), output `FORKHESTRA_COMPLETE` on its own line. This signals to forkhestra that your work is done and the orchestration can complete.
+When running in a forkhestra orchestration loop:
+
+**At startup**, immediately output:
+```
+[Coordinator] Starting in forkhestra mode...
+```
+
+**During execution**, output progress after each task delegation and completion.
+
+**At completion**, after checking task status and confirming all tasks are Done (no tasks in 'To Do' or 'In Progress' status), output `FORKHESTRA_COMPLETE` on its own line. This signals to forkhestra that your work is done and the orchestration can complete.
 
 To check if all tasks are complete:
 1. Run `forge-tasks list --plain` to see all tasks
