@@ -74,6 +74,14 @@
           "prompt": "Implement ${TASK_ID} following the implementation plan. Check off each acceptance criterion as you complete it."
         }
       ]
+    },
+    "pr-review-fix": {
+      "description": "Create a PR, review it for issues, and fix any problems found.",
+      "steps": [
+        { "agent": "git:pr" },
+        { "agent": "review:pr" },
+        { "agent": "git:fix" }
+      ]
     }
   }
 }
