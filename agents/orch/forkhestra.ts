@@ -284,13 +284,13 @@ async function main() {
 
 	try {
 		if (chainName) {
-			// Config mode: load chain from forge/chains.json with fallback to forge-config
+			// Config mode: load chain from forge/chains.json with fallback to util:forge-config
 			const config = await loadConfig(cwd, { verbose });
 			if (!config) {
 				console.error(`[forkhestra] Error: No chain configuration found.`);
 				console.error(`  Checked: ${cwd}/forge/chains.json (not found)`);
 				console.error(
-					`  Checked: forge-config chains (not in PATH or returned error)`,
+					`  Checked: util:forge-config chains (not in PATH or returned error)`,
 				);
 				console.error(``);
 				console.error(`  To fix, either:`);
@@ -298,7 +298,7 @@ async function main() {
 					`    1. Create a local forge/chains.json in your project`,
 				);
 				console.error(
-					`    2. Install forge-config globally (add claude-forge/bin to PATH)`,
+					`    2. Add claude-forge/bin to your PATH for global config access`,
 				);
 				console.error(``);
 				console.error(`  Run with --verbose for detailed resolution logs.`);
