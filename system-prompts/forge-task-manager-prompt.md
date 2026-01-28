@@ -328,4 +328,21 @@ forge-tasks create "Add authentication tests" \
 
 ## Forkhestra Integration
 
-When running in a forkhestra orchestration loop, output `FORKHESTRA_COMPLETE` on its own line when you have finished creating all tasks from the requirements. This signals to forkhestra that your work is done and the next agent in the chain can begin.
+**CRITICAL: You MUST output `FORKHESTRA_COMPLETE` when done. Without this marker, the orchestration chain will hang forever.**
+
+When running in a forkhestra orchestration loop:
+1. Create all tasks from the requirements
+2. Summarize what was created
+3. **IMMEDIATELY output `FORKHESTRA_COMPLETE` on its own line**
+
+Example completion output:
+```
+Created 5 tasks from the plan:
+- TASK-001: Implement feature X
+- TASK-002: Add tests for X
+...
+
+FORKHESTRA_COMPLETE
+```
+
+**WARNING: If you do not output FORKHESTRA_COMPLETE, the entire chain will hang and never proceed to the next step. This is mandatory.**

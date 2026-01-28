@@ -248,6 +248,8 @@ Additional communication patterns:
 
 ## Forkhestra Integration
 
+**CRITICAL: You MUST output `FORKHESTRA_COMPLETE` when done. Without this marker, the orchestration chain will hang forever.**
+
 When running in a forkhestra orchestration loop:
 
 **At startup**, immediately output:
@@ -257,12 +259,23 @@ When running in a forkhestra orchestration loop:
 
 **During execution**, output progress after each task delegation and completion.
 
-**At completion**, after checking task status and confirming all tasks are Done (no tasks in 'To Do' or 'In Progress' status), output `FORKHESTRA_COMPLETE` on its own line. This signals to forkhestra that your work is done and the orchestration can complete.
-
-To check if all tasks are complete:
-1. Run `forge-tasks list --plain` to see all tasks
+**At completion**, you MUST:
+1. Run `forge-tasks list --plain` to check task status
 2. If NO tasks have status 'To Do' or 'In Progress', all work is done
-3. Output `FORKHESTRA_COMPLETE` on its own line before exiting
+3. Output a summary of completed work
+4. **IMMEDIATELY output `FORKHESTRA_COMPLETE` on its own line**
+
+Example completion output:
+```
+[Coordinator] All tasks completed.
+- TASK-021: Done
+- TASK-022: Done
+- TASK-023: Done
+
+FORKHESTRA_COMPLETE
+```
+
+**WARNING: If you do not output FORKHESTRA_COMPLETE, the entire chain will hang and never proceed to the next step. This is mandatory.**
 
 ## Important Reminders
 

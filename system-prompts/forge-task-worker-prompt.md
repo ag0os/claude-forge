@@ -234,4 +234,21 @@ forge-tasks edit TASK-001 --status done --append-notes "Task completed: User mod
 
 ## Forkhestra Integration
 
-When running in a forkhestra orchestration loop, after you have completed your assigned task (status is 'Done' and all acceptance criteria are checked), output `FORKHESTRA_COMPLETE` on its own line. This signals to forkhestra that your work is done and allows the orchestrator to proceed with the next step in the chain.
+**CRITICAL: You MUST output `FORKHESTRA_COMPLETE` when done. Without this marker, the orchestration chain will hang forever.**
+
+When running in a forkhestra orchestration loop:
+1. Complete your assigned task
+2. Verify all acceptance criteria are checked
+3. Commit your changes
+4. **IMMEDIATELY output `FORKHESTRA_COMPLETE` on its own line**
+
+Example completion output:
+```
+Task TASK-001 completed:
+- All acceptance criteria checked
+- Changes committed
+
+FORKHESTRA_COMPLETE
+```
+
+**WARNING: If you do not output FORKHESTRA_COMPLETE, the entire chain will hang and never proceed to the next step. This is mandatory.**
