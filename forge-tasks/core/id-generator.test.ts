@@ -227,6 +227,49 @@ describe("generateNextId", () => {
 			expect(result).toBe("TASK-3");
 		});
 	});
+
+	describe("lastIdNumber persistence (archiving support)", () => {
+		test("uses lastIdNumber when tasks list is empty", () => {
+			const config: ForgeTasksConfig = { prefix: "TASK", lastIdNumber: 50 };
+			const result = generateNextId(config, []);
+			expect(result).toBe("TASK-51");
+		});
+
+		test("uses lastIdNumber when higher than existing task IDs", () => {
+			const config: ForgeTasksConfig = { prefix: "TASK", lastIdNumber: 100 };
+			const tasks = [createTask("TASK-1"), createTask("TASK-5")];
+
+			const result = generateNextId(config, tasks);
+			expect(result).toBe("TASK-101");
+		});
+
+		test("uses highest task ID when higher than lastIdNumber", () => {
+			const config: ForgeTasksConfig = { prefix: "TASK", lastIdNumber: 10 };
+			const tasks = [createTask("TASK-50"), createTask("TASK-25")];
+
+			const result = generateNextId(config, tasks);
+			expect(result).toBe("TASK-51");
+		});
+
+		test("applies zero-padding with lastIdNumber", () => {
+			const config: ForgeTasksConfig = {
+				prefix: "TASK",
+				zeroPadding: 3,
+				lastIdNumber: 50,
+			};
+			const result = generateNextId(config, []);
+			expect(result).toBe("TASK-051");
+		});
+
+		test("handles undefined lastIdNumber as 0", () => {
+			const config: ForgeTasksConfig = {
+				prefix: "TASK",
+				lastIdNumber: undefined,
+			};
+			const result = generateNextId(config, []);
+			expect(result).toBe("TASK-1");
+		});
+	});
 });
 
 describe("extractIdNumbers", () => {

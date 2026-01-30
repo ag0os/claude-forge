@@ -14,7 +14,7 @@ import {
 	saveConfig,
 	saveTaskFile,
 } from "./file-system.ts";
-import { generateNextId } from "./id-generator.ts";
+import { generateNextId, parseIdNumber } from "./id-generator.ts";
 import { parseTask } from "./task-parser.ts";
 import { serializeTask } from "./task-serializer.ts";
 import type {
@@ -118,6 +118,14 @@ export class TaskManager {
 		const content = serializeTask(task);
 		const filename = getTaskFilename(task);
 		await saveTaskFile(this.projectRoot, filename, content);
+
+		// Update lastIdNumber in config to survive archiving
+		const idNumber = parseIdNumber(id, config.prefix);
+		if (idNumber !== null && (config.lastIdNumber ?? 0) < idNumber) {
+			config.lastIdNumber = idNumber;
+			this.config = config;
+			await saveConfig(this.projectRoot, config);
+		}
 
 		return task;
 	}

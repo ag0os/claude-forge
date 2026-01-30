@@ -1,4 +1,5 @@
 {
   "prefix": "TASK",
-  "zeroPadding": 3
+  "zeroPadding": 3,
+  "lastIdNumber": 36
 }
