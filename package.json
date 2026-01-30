@@ -8,6 +8,7 @@
     "compile": "bun scripts/compile.ts",
     "compile:forge-tasks": "bun build forge-tasks/cli/index.ts --compile --outfile bin/forge-tasks",
     "compile:forkhestra": "bun compile agents/forkhestra.ts",
+    "compile:forge": "bun build cli/forge.ts --compile --outfile bin/forge",
     "watch": "bun scripts/watch-agents.ts",
     "lint": "biome check --write .",
     "format": "biome format --write .",

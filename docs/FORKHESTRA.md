@@ -8,7 +8,7 @@ Forkhestra is an agent orchestration system that chains and loops Claude agents.
 
 - **Pipeline mode**: Run agents once each, in sequence
 - **Loop mode**: Run agents repeatedly until completion or max iterations
-- **Config mode**: Define reusable chains in `forge/chains.json`
+- **Config mode**: Define reusable chains in `forge/orch/chains.json`
 - **Prompt support**: Pass instructions to agents at runtime or via configuration
 
 ## Quick Start
@@ -49,7 +49,7 @@ forkhestra --chain <name> [VAR=value...]     # Config mode
 | `--cwd <path>` | | Working directory for all agents |
 | `--verbose` | `-v` | Show full agent output and iteration details |
 | `--dry-run` | | Show what would run without executing |
-| `--chain <name>` | | Run named chain from `forge/chains.json` |
+| `--chain <name>` | | Run named chain from `forge/orch/chains.json` |
 | `--prompt <text>` | `-p` | Inline prompt to pass to all agents |
 | `--prompt-file <path>` | | Path to file containing prompt |
 | `--help` | `-h` | Show help message |
@@ -121,7 +121,7 @@ forkhestra --chain plan-and-build --prompt "Focus on authentication feature"
 
 ### Config Prompts
 
-For per-step prompts, use configuration in `forge/chains.json`:
+For per-step prompts, use configuration in `forge/orch/chains.json`:
 
 ```json
 {
@@ -243,7 +243,7 @@ forkhestra task-coordinator:10 -p "Complete all pending tasks"
 
 ## Configuration Reference
 
-Configuration is stored in `forge/chains.json` at the project root.
+Configuration is stored in `forge/orch/chains.json` at the project root.
 
 ### Full Schema
 
@@ -313,12 +313,12 @@ Configuration is stored in `forge/chains.json` at the project root.
 
 ## Completion Marker Contract
 
-Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on its own line when their work is done.
+Agents participating in forkhestra loops must output `ORCHESTRA_COMPLETE` on its own line when their work is done.
 
 ### How It Works
 
 1. Forkhestra spawns the agent and streams stdout
-2. After each iteration, forkhestra checks if stdout contained `FORKHESTRA_COMPLETE`
+2. After each iteration, forkhestra checks if stdout contained `ORCHESTRA_COMPLETE`
 3. If marker detected: stop looping, mark step as complete
 4. If not detected: continue to next iteration (up to max)
 
@@ -328,7 +328,7 @@ Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on it
 // At the end of your agent's work
 if (workComplete) {
   console.log("All tasks done!");
-  console.log("FORKHESTRA_COMPLETE");
+  console.log("ORCHESTRA_COMPLETE");
 }
 ```
 
@@ -337,7 +337,7 @@ if (workComplete) {
 | Mode | Completion Check |
 |------|------------------|
 | Single (`agent`) | Exit code 0 = success |
-| Loop (`agent:N`) | `FORKHESTRA_COMPLETE` marker or max iterations |
+| Loop (`agent:N`) | `ORCHESTRA_COMPLETE` marker or max iterations |
 
 ---
 
@@ -461,7 +461,7 @@ Prompt files are resolved relative to the working directory. Check:
 
 ### Max Iterations Reached
 
-If a loop agent never outputs `FORKHESTRA_COMPLETE`:
+If a loop agent never outputs `ORCHESTRA_COMPLETE`:
 1. Check agent logs for errors
 2. Increase iteration limit if needed
 3. Ensure agent outputs the marker when work is complete
@@ -485,7 +485,7 @@ forkhestra --chain single-task TASK_ID=TASK-001
 1. **Use `--dry-run` first**: Preview what will execute before running
 2. **Start with low iteration counts**: Debug with `:3` before using `:15`
 3. **Verbose mode for debugging**: Use `-v` to see iteration progress and prompt resolution
-4. **Config for complex workflows**: Use `forge/chains.json` for reproducible, version-controlled chains
+4. **Config for complex workflows**: Use `forge/orch/chains.json` for reproducible, version-controlled chains
 5. **CLI prompts for one-off runs**: Use `--prompt` for quick experiments
 6. **Agent defaults for consistency**: Set default prompts in the `agents` section
 
@@ -513,7 +513,7 @@ Direct spawn mode allows you to define lightweight agents entirely through confi
 
 ### Direct Spawn AgentConfig Fields
 
-When defining a direct spawn agent in the `agents` section of `forge/chains.json`, the following fields are available:
+When defining a direct spawn agent in the `agents` section of `forge/orch/chains.json`, the following fields are available:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -535,7 +535,7 @@ When forkhestra spawns an agent directly, it automatically prepends a mode aware
 - It is running in headless/non-interactive mode
 - It cannot ask the user questions
 - It must make autonomous decisions
-- It must output `FORKHESTRA_COMPLETE` when finished
+- It must output `ORCHESTRA_COMPLETE` when finished
 
 This ensures direct spawn agents behave correctly in the forkhestra orchestration loop.
 
@@ -544,22 +544,22 @@ This ensures direct spawn agents behave correctly in the forkhestra orchestratio
 ```json
 {
   "agents": {
-    "fk:planner": {
-      "systemPrompt": "system-prompts/fk/planner.md",
+    "planner": {
+      "systemPrompt": "forge/orch/prompts/planner.md",
       "model": "sonnet",
       "allowedTools": ["Read", "Grep", "Glob", "Bash"]
     },
-    "fk:builder": {
-      "systemPrompt": "system-prompts/fk/builder.md",
+    "builder": {
+      "systemPrompt": "forge/orch/prompts/builder.md",
       "model": "sonnet"
     }
   },
   "chains": {
-    "ralph": {
+    "build-all": {
       "description": "Planning and building workflow",
       "steps": [
-        { "agent": "fk:planner", "iterations": 3 },
-        { "agent": "fk:builder", "iterations": 20 }
+        { "agent": "planner", "iterations": 3 },
+        { "agent": "builder", "iterations": 20 }
       ]
     }
   }
@@ -567,8 +567,8 @@ This ensures direct spawn agents behave correctly in the forkhestra orchestratio
 ```
 
 In this example:
-- `fk:planner` uses a system prompt file and is restricted to read-only tools
-- `fk:builder` uses a system prompt file with full tool access
+- `planner` uses a system prompt file and is restricted to read-only tools
+- `builder` uses a system prompt file with full tool access
 - Both use the `sonnet` model
 
 ### Direct Spawn vs Binary Spawn Comparison
@@ -584,59 +584,67 @@ In this example:
 
 ---
 
-## The ralph/ Directory Convention
+## The forge/orch/specs/ Directory Convention
 
-Direct spawn agents (particularly `fk:planner` and `fk:builder`) use a convention where project requirements are stored in a `ralph/` directory at the project root.
+Direct spawn agents (particularly `planner` and `builder`) use a convention where project requirements are stored in the `forge/orch/specs/` directory.
 
-### ralph/ Files
+### specs/ Files
 
 | File | Purpose |
 |------|---------|
-| `ralph/PLAN.md` | High-level implementation plan and goals |
-| `ralph/SPECS.md` | Detailed specifications and requirements |
-| `ralph/AGENTS.md` | Agent conventions, coding standards, and project-specific context |
+| `forge/orch/specs/PLAN.md` | High-level implementation plan and goals |
+| `forge/orch/specs/SPECS.md` | Detailed specifications and requirements |
+| `forge/orch/specs/AGENTS.md` | Agent conventions, coding standards, and project-specific context |
 
-### How Agents Use ralph/
+### How Agents Use specs/
 
-**fk:planner** reads requirements from ralph/ and creates tasks:
-1. Reads `ralph/PLAN.md` for high-level goals
-2. Reads `ralph/SPECS.md` for detailed specifications
+**planner** reads requirements from specs/ and creates tasks:
+1. Reads `forge/orch/specs/PLAN.md` for high-level goals
+2. Reads `forge/orch/specs/SPECS.md` for detailed specifications
 3. Compares requirements against existing tasks
 4. Creates tasks for any uncovered requirements
 
-**fk:builder** implements tasks following ralph/ conventions:
-1. Reads `ralph/AGENTS.md` for coding conventions (if present)
+**builder** implements tasks following specs/ conventions:
+1. Reads `forge/orch/specs/AGENTS.md` for coding conventions (if present)
 2. Finds ready tasks using `forge-tasks list --ready`
 3. Implements one task per iteration, following project conventions
-4. Marks tasks complete and outputs `FORKHESTRA_COMPLETE`
+4. Marks tasks complete and outputs `ORCHESTRA_COMPLETE`
 
-### Example ralph/ Structure
+### Example Directory Structure
 
 ```
 project/
-├── ralph/
-│   ├── PLAN.md       # "Build a REST API for user management"
-│   ├── SPECS.md      # Detailed endpoint specs, validation rules
-│   └── AGENTS.md     # "Use TypeScript, Bun, follow TDD practices"
 └── forge/
-    └── chains.json   # Forkhestra configuration
+    ├── orch/
+    │   ├── chains.json
+    │   ├── prompts/
+    │   │   ├── planner.md
+    │   │   └── builder.md
+    │   └── specs/           # per-project
+    │       ├── PLAN.md      # "Build a REST API for user management"
+    │       ├── SPECS.md     # Detailed endpoint specs, validation rules
+    │       └── AGENTS.md    # "Use TypeScript, Bun, follow TDD practices"
+    ├── tasks/
+    │   ├── archive/
+    │   └── config.json
+    └── plans/
 ```
 
 ---
 
-## Built-in fk:* Agents
+## Built-in Direct Spawn Agents
 
 Forkhestra includes two built-in direct spawn agents for planning and building workflows.
 
-### fk:planner
+### planner
 
 The planner agent creates tasks from project requirements.
 
 **Configuration:**
 ```json
 {
-  "fk:planner": {
-    "systemPrompt": "system-prompts/fk/planner.md",
+  "planner": {
+    "systemPrompt": "forge/orch/prompts/planner.md",
     "model": "sonnet",
     "allowedTools": ["Read", "Grep", "Glob", "Bash"]
   }
@@ -644,55 +652,55 @@ The planner agent creates tasks from project requirements.
 ```
 
 **Responsibilities:**
-- Read `ralph/PLAN.md` and `ralph/SPECS.md`
+- Read `forge/orch/specs/PLAN.md` and `forge/orch/specs/SPECS.md`
 - Check existing tasks with `forge-tasks list`
 - Create tasks for uncovered requirements
 - **Never implements code** (planning only)
 
 **Tool restrictions:** Limited to read-only tools to prevent accidental implementation.
 
-### fk:builder
+### builder
 
 The builder agent implements tasks one at a time.
 
 **Configuration:**
 ```json
 {
-  "fk:builder": {
-    "systemPrompt": "system-prompts/fk/builder.md",
+  "builder": {
+    "systemPrompt": "forge/orch/prompts/builder.md",
     "model": "sonnet"
   }
 }
 ```
 
 **Responsibilities:**
-- Read `ralph/AGENTS.md` for coding conventions
+- Read `forge/orch/specs/AGENTS.md` for coding conventions
 - Find ready tasks with `forge-tasks list --ready`
 - Implement exactly ONE task per iteration
 - Mark task complete and commit changes
-- Signal `FORKHESTRA_COMPLETE` when done
+- Signal `ORCHESTRA_COMPLETE` when done
 
 **Tool access:** Full tool access for implementation work.
 
 ---
 
-## ralph, build, and plan Chains
+## build-all, build, and plan Chains
 
-Three built-in chains use the fk:* agents for common workflows.
+Three built-in chains use the direct spawn agents for common workflows.
 
-### ralph Chain
+### build-all Chain
 
 Full planning and building workflow.
 
 ```bash
-forkhestra --chain ralph
+forkhestra --chain build-all
 ```
 
 **Steps:**
-1. `fk:planner` runs up to 3 iterations to create tasks
-2. `fk:builder` runs up to 20 iterations to implement tasks
+1. `planner` runs up to 3 iterations to create tasks
+2. `builder` runs up to 20 iterations to implement tasks
 
-**Use case:** Starting a new feature from requirements in ralph/.
+**Use case:** Starting a new feature from requirements in forge/orch/specs/.
 
 ### build Chain
 
@@ -703,7 +711,7 @@ forkhestra --chain build
 ```
 
 **Steps:**
-1. `fk:builder` runs up to 30 iterations to implement tasks
+1. `builder` runs up to 30 iterations to implement tasks
 
 **Use case:** Tasks already exist; just need implementation.
 
@@ -716,7 +724,7 @@ forkhestra --chain plan
 ```
 
 **Steps:**
-1. `fk:planner` runs up to 5 iterations to create tasks
+1. `planner` runs up to 5 iterations to create tasks
 
 **Use case:** Review generated tasks before committing to implementation.
 
@@ -724,9 +732,9 @@ forkhestra --chain plan
 
 ```bash
 # 1. Set up requirements
-mkdir ralph
-echo "# User API Plan\nBuild CRUD endpoints for users" > ralph/PLAN.md
-echo "# Specifications\n- POST /users creates user\n- GET /users/:id returns user" > ralph/SPECS.md
+mkdir -p forge/orch/specs
+echo "# User API Plan\nBuild CRUD endpoints for users" > forge/orch/specs/PLAN.md
+echo "# Specifications\n- POST /users creates user\n- GET /users/:id returns user" > forge/orch/specs/SPECS.md
 
 # 2. Generate tasks (review before building)
 forkhestra --chain plan
@@ -735,7 +743,7 @@ forkhestra --chain plan
 forge-tasks list
 
 # 4. Run full workflow (or just build if tasks look good)
-forkhestra --chain ralph
+forkhestra --chain build-all
 # Or skip planning:
 forkhestra --chain build
 ```
@@ -752,5 +760,5 @@ forkhestra --chain plan --prompt "Focus only on authentication-related requireme
 forkhestra --chain build --prompt "Start with the database schema tasks"
 
 # Full workflow with guidance
-forkhestra --chain ralph --prompt "Prioritize backend tasks first"
+forkhestra --chain build-all --prompt "Prioritize backend tasks first"
 ```

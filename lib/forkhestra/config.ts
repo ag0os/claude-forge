@@ -1,9 +1,9 @@
 /**
  * Config loader for forkhestra chain definitions
  *
- * Loads and validates forge/chains.json configuration file.
+ * Loads and validates forge/orch/chains.json configuration file.
  * Uses fallback resolution:
- * 1. Local ./forge/chains.json (project-specific override)
+ * 1. Local ./forge/orch/chains.json (project-specific override)
  * 2. util:forge-config chains output (global shared config)
  * 3. Returns null if neither found
  *
@@ -89,7 +89,7 @@ export function isDirectSpawnAgent(agent: AgentConfig): boolean {
 }
 
 /**
- * Root configuration structure from forge/chains.json
+ * Root configuration structure from forge/orch/chains.json
  */
 export interface ForkhestraConfig {
 	chains: Record<string, ChainConfig>;
@@ -105,14 +105,14 @@ export interface LoadConfigOptions {
 	verbose?: boolean;
 }
 
-const CONFIG_PATH = "forge/chains.json";
+const CONFIG_PATH = "forge/orch/chains.json";
 
 /**
- * Load configuration from forge/chains.json relative to the provided cwd,
+ * Load configuration from forge/orch/chains.json relative to the provided cwd,
  * with fallback to forge-config chains command.
  *
  * Resolution order:
- * 1. Local ./forge/chains.json (project-specific override)
+ * 1. Local ./forge/orch/chains.json (project-specific override)
  * 2. forge-config chains output (global shared config)
  * 3. Returns null if neither found
  *

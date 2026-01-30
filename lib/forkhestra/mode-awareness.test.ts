@@ -38,7 +38,7 @@ describe("MODE_AWARENESS_PREFIX", () => {
 		expect(MODE_AWARENESS_PREFIX).toContain("CANNOT ask the user");
 	});
 
-	test("contains FORKHESTRA_COMPLETE contract", () => {
+	test("contains ORCHESTRA_COMPLETE contract", () => {
 		expect(MODE_AWARENESS_PREFIX).toContain(COMPLETION_MARKER);
 		expect(MODE_AWARENESS_PREFIX).toContain("COMPLETION CONTRACT");
 	});

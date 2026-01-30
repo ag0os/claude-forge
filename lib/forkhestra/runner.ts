@@ -64,7 +64,7 @@ export interface RunOptions {
  * or runBinary() for legacy binary agents.
  *
  * In loop mode (loop: true):
- * - Streams stdout and watches for FORKHESTRA_COMPLETE marker
+ * - Streams stdout and watches for ORCHESTRA_COMPLETE marker
  * - Loops until marker detected or maxIterations reached
  *
  * In single-run mode (loop: false):

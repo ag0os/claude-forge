@@ -11,4 +11,4 @@
  * When an agent outputs this marker on its own line, the forkhestra
  * orchestrator knows the agent has completed its work and should stop looping.
  */
-export const COMPLETION_MARKER = "FORKHESTRA_COMPLETE";
+export const COMPLETION_MARKER = "ORCHESTRA_COMPLETE";

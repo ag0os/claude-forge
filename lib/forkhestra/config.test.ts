@@ -20,7 +20,7 @@ import {
 const tmpDir = "/tmp/forkhestra-config-test";
 
 beforeAll(() => {
-	mkdirSync(join(tmpDir, "forge"), { recursive: true });
+	mkdirSync(join(tmpDir, "forge/orch"), { recursive: true });
 });
 
 afterAll(() => {
@@ -29,7 +29,7 @@ afterAll(() => {
 
 function writeConfig(config: unknown) {
 	writeFileSync(
-		join(tmpDir, "forge/chains.json"),
+		join(tmpDir, "forge/orch/chains.json"),
 		JSON.stringify(config, null, 2)
 	);
 }
@@ -986,7 +986,7 @@ describe("config resolution fallback", () => {
 	});
 
 	test("returns null when no local config and forge-config not available", async () => {
-		// emptyDir has no forge/chains.json and forge-config is not in PATH during tests
+		// emptyDir has no forge/orch/chains.json and forge-config is not in PATH during tests
 		const config = await loadConfig(emptyDir);
 		expect(config).toBeNull();
 	});

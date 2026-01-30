@@ -20,7 +20,7 @@ import { COMPLETION_MARKER } from "./constants";
 
 // Test directory setup
 const tmpDir = "/tmp/forkhestra-integration-test";
-const forgeDir = join(tmpDir, "forge");
+const forgeDir = join(tmpDir, "forge/orch");
 const promptsDir = join(tmpDir, "system-prompts/fk");
 
 beforeAll(() => {
@@ -220,7 +220,7 @@ describe("integration: system prompt composition", () => {
 		const composed = composeSystemPrompt(agentPrompt);
 
 		expect(composed).toContain(COMPLETION_MARKER);
-		expect(composed).toContain("FORKHESTRA_COMPLETE");
+		expect(composed).toContain("ORCHESTRA_COMPLETE");
 		expect(composed).toContain("HEADLESS mode");
 		expect(composed).toContain("CANNOT ask the user questions");
 	});

@@ -2,7 +2,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import chains from "../../forge/chains.json" with { type: "json" };
+import chains from "../../forge/orch/chains.json" with { type: "json" };
 import { getForgeRoot } from "../../lib/forge-root";
 import packageJson from "../../package.json" with { type: "json" };
 

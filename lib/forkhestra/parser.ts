@@ -22,7 +22,7 @@ export interface ChainStep {
 	agent: string;
 	/** Maximum number of iterations (1 if no looping) */
 	iterations: number;
-	/** If true, loop until FORKHESTRA_COMPLETE marker or max iterations */
+	/** If true, loop until ORCHESTRA_COMPLETE marker or max iterations */
 	loop: boolean;
 	/** Optional arguments to pass to the agent */
 	args?: string[];
