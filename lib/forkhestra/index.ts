@@ -38,3 +38,10 @@ export {
 	resolvePrompt,
 	type PromptSources,
 } from "./prompt";
+
+// From mode-awareness.ts
+export {
+	MODE_AWARENESS_PREFIX,
+	composeSystemPrompt,
+	loadAgentSystemPrompt,
+} from "./mode-awareness";
