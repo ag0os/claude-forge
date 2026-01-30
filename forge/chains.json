@@ -1,117 +1,17 @@
 {
   "agents": {
-    "tasks:manager": {
-      "defaultPrompt": "Review existing plans and create well-structured tasks with clear acceptance criteria"
-    },
-    "tasks:coordinator": {
-      "defaultPrompt": "Execute all pending tasks in dependency order, delegating to appropriate specialists"
-    },
     "fk:planner": {
       "systemPrompt": "system-prompts/fk/planner.md",
-      "model": "sonnet",
+      "model": "opus",
       "allowedTools": ["Read", "Grep", "Glob", "Bash"]
     },
     "fk:builder": {
       "systemPrompt": "system-prompts/fk/builder.md",
-      "model": "sonnet"
+      "model": "opus"
     }
   },
   "chains": {
-    "plan-and-build": {
-      "description": "Break down requirements into tasks, then coordinate implementation. Both agents loop until they signal completion or reach max iterations.",
-      "steps": [
-        { "agent": "tasks:manager", "iterations": 3 },
-        { "agent": "tasks:coordinator", "iterations": 15 }
-      ]
-    },
-    "quick-pipeline": {
-      "description": "Run agents in sequence, once each (no looping). Useful for simple workflows where each step runs to natural completion without iteration limits.",
-      "steps": [
-        { "agent": "tasks:manager" },
-        { "agent": "tasks:coordinator" }
-      ]
-    },
-    "single-task": {
-      "description": "Work on one specific task. Uses variable substitution to pass TASK_ID from environment or CLI args.",
-      "steps": [
-        { "agent": "tasks:worker", "iterations": 8, "args": ["--task", "${TASK_ID}"] }
-      ]
-    },
-    "mixed-mode": {
-      "description": "Manager runs once to create/update tasks, then coordinator loops to implement them. Demonstrates combining looping and non-looping steps.",
-      "steps": [
-        { "agent": "tasks:manager" },
-        { "agent": "tasks:coordinator", "iterations": 15 }
-      ]
-    },
-    "full-tdd-cycle": {
-      "description": "Complete TDD workflow: plan tasks, then coordinate implementation with TDD practices.",
-      "steps": [
-        { "agent": "tasks:manager", "iterations": 2 },
-        { "agent": "build:tdd", "iterations": 10 }
-      ]
-    },
-    "design-then-build": {
-      "description": "Design exploration followed by implementation. Riff agent runs once to explore design, then coordinator implements.",
-      "steps": [
-        { "agent": "plan:riff" },
-        { "agent": "tasks:coordinator", "iterations": 12 }
-      ]
-    },
-    "feature-build": {
-      "description": "Build a specific feature with tailored prompts at each step. Demonstrates prompt configuration at chain and step levels.",
-      "prompt": "Work on the ${FEATURE_NAME} feature following TDD practices",
-      "steps": [
-        {
-          "agent": "tasks:manager",
-          "iterations": 2,
-          "prompt": "Create tasks for ${FEATURE_NAME} from the requirements. Each task should have atomic, testable acceptance criteria."
-        },
-        {
-          "agent": "tasks:coordinator",
-          "iterations": 15
-        }
-      ]
-    },
-    "targeted-work": {
-      "description": "Work on a specific task with a custom prompt. Example of step-level prompt with variable substitution.",
-      "steps": [
-        {
-          "agent": "tasks:worker",
-          "iterations": 10,
-          "args": ["--task", "${TASK_ID}"],
-          "prompt": "Implement ${TASK_ID} following the implementation plan. Check off each acceptance criterion as you complete it."
-        }
-      ]
-    },
-    "pr-review-fix": {
-      "description": "Create a PR, review it for issues, and fix any problems found.",
-      "steps": [
-        { "agent": "git:pr" },
-        { "agent": "review:pr" },
-        { "agent": "git:fix" }
-      ]
-    },
-    "build-and-pr": {
-      "description": "Coordinate task implementation, then create and review a PR.",
-      "steps": [
-        { "agent": "tasks:coordinator", "iterations": 2 },
-        { "agent": "git:pr" },
-        { "agent": "review:pr" },
-        { "agent": "git:fix" }
-      ]
-    },
-    "plan-to-pr": {
-      "description": "Create tasks from a plan file, implement them, and create a reviewed PR.",
-      "steps": [
-        { "agent": "tasks:manager", "iterations": 2, "prompt": "Create tasks from ${PLAN_FILE}" },
-        { "agent": "tasks:coordinator", "iterations": 2, "prompt": "Implement tasks from ${PLAN_FILE}" },
-        { "agent": "git:pr" },
-        { "agent": "review:pr" },
-        { "agent": "git:fix" }
-      ]
-    },
-    "ralph": {
+    "plan-build": {
       "description": "Forkhestra planning and building workflow. Planner creates implementation tasks, builder executes them.",
       "steps": [
         { "agent": "fk:planner", "iterations": 3 },
@@ -120,15 +20,11 @@
     },
     "build": {
       "description": "Run forkhestra builder to implement existing tasks.",
-      "steps": [
-        { "agent": "fk:builder", "iterations": 30 }
-      ]
+      "steps": [{ "agent": "fk:builder", "iterations": 30 }]
     },
     "plan": {
       "description": "Run forkhestra planner to create implementation tasks from requirements.",
-      "steps": [
-        { "agent": "fk:planner", "iterations": 5 }
-      ]
+      "steps": [{ "agent": "fk:planner", "iterations": 5 }]
     }
   }
 }
