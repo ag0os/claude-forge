@@ -10,7 +10,7 @@ import { existsSync } from "node:fs";
 import { join, isAbsolute } from "node:path";
 
 import type { AgentConfig } from "./config";
-import { COMPLETION_MARKER } from "./runner";
+import { COMPLETION_MARKER } from "./constants";
 
 /**
  * Prefix that informs Claude about headless execution mode and forkhestra contract.
