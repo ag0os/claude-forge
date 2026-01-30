@@ -41,6 +41,11 @@ export interface ChainConfig {
 }
 
 /**
+ * Valid model identifiers for direct spawn agents
+ */
+export type AgentModel = "sonnet" | "opus" | "haiku";
+
+/**
  * Configuration for a specific agent's defaults
  */
 export interface AgentConfig {
@@ -48,6 +53,39 @@ export interface AgentConfig {
 	defaultPrompt?: string;
 	/** Default path to a file containing the prompt for this agent */
 	defaultPromptFile?: string;
+
+	// Direct spawn fields - when set, agent spawns Claude directly instead of running a binary
+
+	/** Path to system prompt file (relative to config or absolute) */
+	systemPrompt?: string;
+	/** Inline system prompt text */
+	systemPromptText?: string;
+	/** Path to MCP config file */
+	mcpConfig?: string;
+	/** Path to settings file */
+	settings?: string;
+	/** Model to use (sonnet, opus, haiku) */
+	model?: AgentModel;
+	/** Maximum number of turns for the conversation */
+	maxTurns?: number;
+	/** List of allowed tools (whitelist) */
+	allowedTools?: string[];
+	/** List of disallowed tools (blacklist) */
+	disallowedTools?: string[];
+}
+
+/**
+ * Check if an agent config is configured for direct Claude spawning.
+ *
+ * An agent is considered a direct spawn agent if it has either:
+ * - systemPrompt: path to a system prompt file
+ * - systemPromptText: inline system prompt text
+ *
+ * @param agent - The agent configuration to check
+ * @returns true if the agent should spawn Claude directly
+ */
+export function isDirectSpawnAgent(agent: AgentConfig): boolean {
+	return agent.systemPrompt !== undefined || agent.systemPromptText !== undefined;
 }
 
 /**
@@ -281,6 +319,11 @@ function validateAndTransformConfig(
 }
 
 /**
+ * Valid model values for validation
+ */
+const VALID_MODELS: AgentModel[] = ["sonnet", "opus", "haiku"];
+
+/**
  * Validate and transform a single agent configuration.
  *
  * @param rawAgent - The raw agent object
@@ -301,6 +344,7 @@ function validateAndTransformAgent(
 	}
 
 	const agent = rawAgent as Record<string, unknown>;
+	const prefix = `Invalid config schema at ${configPath}: agent '${agentName}'`;
 
 	// Validate defaultPrompt if present
 	if (
@@ -308,9 +352,7 @@ function validateAndTransformAgent(
 		agent.defaultPrompt !== undefined &&
 		typeof agent.defaultPrompt !== "string"
 	) {
-		throw new Error(
-			`Invalid config schema at ${configPath}: agent '${agentName}' defaultPrompt must be a string`
-		);
+		throw new Error(`${prefix} defaultPrompt must be a string`);
 	}
 
 	// Validate defaultPromptFile if present
@@ -319,14 +361,102 @@ function validateAndTransformAgent(
 		agent.defaultPromptFile !== undefined &&
 		typeof agent.defaultPromptFile !== "string"
 	) {
-		throw new Error(
-			`Invalid config schema at ${configPath}: agent '${agentName}' defaultPromptFile must be a string`
-		);
+		throw new Error(`${prefix} defaultPromptFile must be a string`);
+	}
+
+	// Validate systemPrompt if present
+	if (
+		"systemPrompt" in agent &&
+		agent.systemPrompt !== undefined &&
+		typeof agent.systemPrompt !== "string"
+	) {
+		throw new Error(`${prefix} systemPrompt must be a string`);
+	}
+
+	// Validate systemPromptText if present
+	if (
+		"systemPromptText" in agent &&
+		agent.systemPromptText !== undefined &&
+		typeof agent.systemPromptText !== "string"
+	) {
+		throw new Error(`${prefix} systemPromptText must be a string`);
+	}
+
+	// Validate mcpConfig if present
+	if (
+		"mcpConfig" in agent &&
+		agent.mcpConfig !== undefined &&
+		typeof agent.mcpConfig !== "string"
+	) {
+		throw new Error(`${prefix} mcpConfig must be a string`);
+	}
+
+	// Validate settings if present
+	if (
+		"settings" in agent &&
+		agent.settings !== undefined &&
+		typeof agent.settings !== "string"
+	) {
+		throw new Error(`${prefix} settings must be a string`);
+	}
+
+	// Validate model if present
+	if ("model" in agent && agent.model !== undefined) {
+		if (typeof agent.model !== "string") {
+			throw new Error(`${prefix} model must be a string`);
+		}
+		if (!VALID_MODELS.includes(agent.model as AgentModel)) {
+			throw new Error(
+				`${prefix} model must be one of: ${VALID_MODELS.join(", ")}`
+			);
+		}
+	}
+
+	// Validate maxTurns if present
+	if ("maxTurns" in agent && agent.maxTurns !== undefined) {
+		if (typeof agent.maxTurns !== "number") {
+			throw new Error(`${prefix} maxTurns must be a number`);
+		}
+		if (!Number.isInteger(agent.maxTurns) || agent.maxTurns < 1) {
+			throw new Error(`${prefix} maxTurns must be a positive integer`);
+		}
+	}
+
+	// Validate allowedTools if present
+	if ("allowedTools" in agent && agent.allowedTools !== undefined) {
+		if (!Array.isArray(agent.allowedTools)) {
+			throw new Error(`${prefix} allowedTools must be an array`);
+		}
+		for (let i = 0; i < agent.allowedTools.length; i++) {
+			if (typeof agent.allowedTools[i] !== "string") {
+				throw new Error(`${prefix} allowedTools[${i}] must be a string`);
+			}
+		}
+	}
+
+	// Validate disallowedTools if present
+	if ("disallowedTools" in agent && agent.disallowedTools !== undefined) {
+		if (!Array.isArray(agent.disallowedTools)) {
+			throw new Error(`${prefix} disallowedTools must be an array`);
+		}
+		for (let i = 0; i < agent.disallowedTools.length; i++) {
+			if (typeof agent.disallowedTools[i] !== "string") {
+				throw new Error(`${prefix} disallowedTools[${i}] must be a string`);
+			}
+		}
 	}
 
 	return {
 		defaultPrompt: agent.defaultPrompt as string | undefined,
 		defaultPromptFile: agent.defaultPromptFile as string | undefined,
+		systemPrompt: agent.systemPrompt as string | undefined,
+		systemPromptText: agent.systemPromptText as string | undefined,
+		mcpConfig: agent.mcpConfig as string | undefined,
+		settings: agent.settings as string | undefined,
+		model: agent.model as AgentModel | undefined,
+		maxTurns: agent.maxTurns as number | undefined,
+		allowedTools: agent.allowedTools as string[] | undefined,
+		disallowedTools: agent.disallowedTools as string[] | undefined,
 	};
 }
 

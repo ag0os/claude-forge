@@ -488,3 +488,269 @@ forkhestra --chain single-task TASK_ID=TASK-001
 4. **Config for complex workflows**: Use `forge/chains.json` for reproducible, version-controlled chains
 5. **CLI prompts for one-off runs**: Use `--prompt` for quick experiments
 6. **Agent defaults for consistency**: Set default prompts in the `agents` section
+
+---
+
+## Direct Spawn Mode
+
+Forkhestra supports two ways to define agents:
+
+1. **Binary spawn**: Agents are compiled TypeScript binaries in the `agents/` directory
+2. **Direct spawn**: Agents are config-only definitions that spawn `claude` CLI directly with a system prompt
+
+Direct spawn mode allows you to define lightweight agents entirely through configuration, without writing any TypeScript code.
+
+### When to Use Each Mode
+
+| Mode | Use When |
+|------|----------|
+| Binary spawn | Agent needs custom logic, SDK integration, or complex initialization |
+| Direct spawn | Agent is purely prompt-driven with standard Claude capabilities |
+
+**Binary spawn** is the traditional approach where agents are compiled TypeScript files that use the `@anthropic-ai/claude-code` SDK. These agents have full control over how they spawn Claude and can implement custom logic.
+
+**Direct spawn** is simpler: you define a system prompt file and optional configuration, and forkhestra spawns `claude` directly with those settings. This is ideal for agents that are purely defined by their system prompt.
+
+### Direct Spawn AgentConfig Fields
+
+When defining a direct spawn agent in the `agents` section of `forge/chains.json`, the following fields are available:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `systemPrompt` | string | Path to a system prompt file (relative to cwd or absolute) |
+| `systemPromptText` | string | Inline system prompt text (takes priority over `systemPrompt`) |
+| `mcpConfig` | string | Path to MCP configuration file |
+| `settings` | string | Path to Claude settings file |
+| `model` | string | Model to use: `"sonnet"`, `"opus"`, or `"haiku"` |
+| `maxTurns` | number | Maximum conversation turns |
+| `allowedTools` | string[] | Whitelist of allowed tool names |
+| `disallowedTools` | string[] | Blacklist of disallowed tool names |
+
+**Note**: An agent is identified as direct spawn if it has either `systemPrompt` or `systemPromptText` defined. Without these fields, the agent is treated as a binary spawn agent.
+
+### Mode Awareness
+
+When forkhestra spawns an agent directly, it automatically prepends a mode awareness prefix to the system prompt. This prefix informs Claude that:
+
+- It is running in headless/non-interactive mode
+- It cannot ask the user questions
+- It must make autonomous decisions
+- It must output `FORKHESTRA_COMPLETE` when finished
+
+This ensures direct spawn agents behave correctly in the forkhestra orchestration loop.
+
+### Example: Direct Spawn Configuration
+
+```json
+{
+  "agents": {
+    "fk:planner": {
+      "systemPrompt": "system-prompts/fk/planner.md",
+      "model": "sonnet",
+      "allowedTools": ["Read", "Grep", "Glob", "Bash"]
+    },
+    "fk:builder": {
+      "systemPrompt": "system-prompts/fk/builder.md",
+      "model": "sonnet"
+    }
+  },
+  "chains": {
+    "ralph": {
+      "description": "Planning and building workflow",
+      "steps": [
+        { "agent": "fk:planner", "iterations": 3 },
+        { "agent": "fk:builder", "iterations": 20 }
+      ]
+    }
+  }
+}
+```
+
+In this example:
+- `fk:planner` uses a system prompt file and is restricted to read-only tools
+- `fk:builder` uses a system prompt file with full tool access
+- Both use the `sonnet` model
+
+### Direct Spawn vs Binary Spawn Comparison
+
+| Aspect | Binary Spawn | Direct Spawn |
+|--------|--------------|--------------|
+| **Definition** | TypeScript file in `agents/` | Config entry with `systemPrompt` |
+| **Compilation** | Required (`bun compile`) | Not needed |
+| **Customization** | Full programmatic control | Configuration-only |
+| **System prompt** | Defined in TypeScript code | Loaded from file or inline |
+| **Mode awareness** | Agent must handle itself | Automatically prepended |
+| **Use case** | Complex agents with custom logic | Prompt-driven agents |
+
+---
+
+## The ralph/ Directory Convention
+
+Direct spawn agents (particularly `fk:planner` and `fk:builder`) use a convention where project requirements are stored in a `ralph/` directory at the project root.
+
+### ralph/ Files
+
+| File | Purpose |
+|------|---------|
+| `ralph/PLAN.md` | High-level implementation plan and goals |
+| `ralph/SPECS.md` | Detailed specifications and requirements |
+| `ralph/AGENTS.md` | Agent conventions, coding standards, and project-specific context |
+
+### How Agents Use ralph/
+
+**fk:planner** reads requirements from ralph/ and creates tasks:
+1. Reads `ralph/PLAN.md` for high-level goals
+2. Reads `ralph/SPECS.md` for detailed specifications
+3. Compares requirements against existing tasks
+4. Creates tasks for any uncovered requirements
+
+**fk:builder** implements tasks following ralph/ conventions:
+1. Reads `ralph/AGENTS.md` for coding conventions (if present)
+2. Finds ready tasks using `forge-tasks list --ready`
+3. Implements one task per iteration, following project conventions
+4. Marks tasks complete and outputs `FORKHESTRA_COMPLETE`
+
+### Example ralph/ Structure
+
+```
+project/
+├── ralph/
+│   ├── PLAN.md       # "Build a REST API for user management"
+│   ├── SPECS.md      # Detailed endpoint specs, validation rules
+│   └── AGENTS.md     # "Use TypeScript, Bun, follow TDD practices"
+└── forge/
+    └── chains.json   # Forkhestra configuration
+```
+
+---
+
+## Built-in fk:* Agents
+
+Forkhestra includes two built-in direct spawn agents for planning and building workflows.
+
+### fk:planner
+
+The planner agent creates tasks from project requirements.
+
+**Configuration:**
+```json
+{
+  "fk:planner": {
+    "systemPrompt": "system-prompts/fk/planner.md",
+    "model": "sonnet",
+    "allowedTools": ["Read", "Grep", "Glob", "Bash"]
+  }
+}
+```
+
+**Responsibilities:**
+- Read `ralph/PLAN.md` and `ralph/SPECS.md`
+- Check existing tasks with `forge-tasks list`
+- Create tasks for uncovered requirements
+- **Never implements code** (planning only)
+
+**Tool restrictions:** Limited to read-only tools to prevent accidental implementation.
+
+### fk:builder
+
+The builder agent implements tasks one at a time.
+
+**Configuration:**
+```json
+{
+  "fk:builder": {
+    "systemPrompt": "system-prompts/fk/builder.md",
+    "model": "sonnet"
+  }
+}
+```
+
+**Responsibilities:**
+- Read `ralph/AGENTS.md` for coding conventions
+- Find ready tasks with `forge-tasks list --ready`
+- Implement exactly ONE task per iteration
+- Mark task complete and commit changes
+- Signal `FORKHESTRA_COMPLETE` when done
+
+**Tool access:** Full tool access for implementation work.
+
+---
+
+## ralph, build, and plan Chains
+
+Three built-in chains use the fk:* agents for common workflows.
+
+### ralph Chain
+
+Full planning and building workflow.
+
+```bash
+forkhestra --chain ralph
+```
+
+**Steps:**
+1. `fk:planner` runs up to 3 iterations to create tasks
+2. `fk:builder` runs up to 20 iterations to implement tasks
+
+**Use case:** Starting a new feature from requirements in ralph/.
+
+### build Chain
+
+Implementation only, using existing tasks.
+
+```bash
+forkhestra --chain build
+```
+
+**Steps:**
+1. `fk:builder` runs up to 30 iterations to implement tasks
+
+**Use case:** Tasks already exist; just need implementation.
+
+### plan Chain
+
+Planning only, creating tasks without implementation.
+
+```bash
+forkhestra --chain plan
+```
+
+**Steps:**
+1. `fk:planner` runs up to 5 iterations to create tasks
+
+**Use case:** Review generated tasks before committing to implementation.
+
+### Workflow Example
+
+```bash
+# 1. Set up requirements
+mkdir ralph
+echo "# User API Plan\nBuild CRUD endpoints for users" > ralph/PLAN.md
+echo "# Specifications\n- POST /users creates user\n- GET /users/:id returns user" > ralph/SPECS.md
+
+# 2. Generate tasks (review before building)
+forkhestra --chain plan
+
+# 3. Review generated tasks
+forge-tasks list
+
+# 4. Run full workflow (or just build if tasks look good)
+forkhestra --chain ralph
+# Or skip planning:
+forkhestra --chain build
+```
+
+### Customizing with Prompts
+
+Override the default behavior with runtime prompts:
+
+```bash
+# Focus planner on specific requirements
+forkhestra --chain plan --prompt "Focus only on authentication-related requirements"
+
+# Guide builder to specific tasks
+forkhestra --chain build --prompt "Start with the database schema tasks"
+
+# Full workflow with guidance
+forkhestra --chain ralph --prompt "Prioritize backend tasks first"
+```

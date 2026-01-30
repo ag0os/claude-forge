@@ -2,69 +2,99 @@
 
 Task management via CLI. Store tasks in `forge/tasks/` as markdown files.
 
-## CLI Quick Reference
+## CLI Reference
 
 ```bash
-forge-tasks init --prefix TASK              # Initialize project
-forge-tasks create "Title" --ac "Criterion" # Create task with acceptance criteria
-forge-tasks list --plain                    # List all tasks
-forge-tasks list --status todo              # Filter by status (todo|in-progress|done|blocked)
-forge-tasks list --ready --plain            # Tasks with no blocking dependencies
-forge-tasks view TASK-1 --plain             # View task details
-forge-tasks edit TASK-1 --status in-progress --check-ac 1  # Update task
-forge-tasks edit TASK-1 --append-notes "Progress update"   # Add notes
-forge-tasks search "query" --plain          # Search tasks
-forge-tasks delete TASK-1 --force           # Delete task
+# Initialize
+forge-tasks init --prefix TASK
+
+# Create
+forge-tasks create "Title" \
+  --description "Details" \
+  --priority high|medium|low \
+  --label backend --label api \
+  --ac "Acceptance criterion 1" \
+  --ac "Acceptance criterion 2" \
+  --depends-on TASK-001
+
+# List
+forge-tasks list --plain
+forge-tasks list --status todo|in-progress|done|blocked --plain
+forge-tasks list --ready --plain          # No blocking dependencies
+forge-tasks list --priority high --plain
+forge-tasks list --label backend --plain
+
+# View & Search
+forge-tasks view TASK-001 --plain
+forge-tasks search "query" --plain
+
+# Edit
+forge-tasks edit TASK-001 --status "In Progress"
+forge-tasks edit TASK-001 --status done
+forge-tasks edit TASK-001 --status blocked
+forge-tasks edit TASK-001 --check-ac 1              # Check off AC by index
+forge-tasks edit TASK-001 --check-ac 1 --check-ac 2 # Multiple ACs
+forge-tasks edit TASK-001 --append-notes "Progress update"
+forge-tasks edit TASK-001 --plan "Implementation approach"
+forge-tasks edit TASK-001 --add-label testing
+forge-tasks edit TASK-001 --add-dep TASK-002
+
+# Delete
+forge-tasks delete TASK-001 --force
 ```
+
+Always use `--plain` when processing task data programmatically.
 
 ## Standard Labels
 
-Use these labels for routing tasks to appropriate agents:
+| Label | Work Type | Route To |
+|-------|-----------|----------|
+| `backend` | Server-side logic, business rules | backend specialists |
+| `frontend` | UI, components, styling | `frontend-design`, UI specialists |
+| `api` | REST/GraphQL endpoints | API specialists |
+| `database` | Models, migrations, queries | database specialists |
+| `testing` | Tests, coverage | test agents |
+| `devops` | CI/CD, deployment | devops agents |
+| `refactoring` | Code improvement | refactoring specialists |
+| `documentation` | Docs, READMEs | `general-purpose` |
 
-| Label | Work Type |
-|-------|-----------|
-| `backend` | Server-side logic, business rules |
-| `frontend` | UI, components, styling |
-| `api` | REST/GraphQL endpoints |
-| `database` | Models, migrations, queries |
-| `testing` | Tests, coverage |
-| `devops` | CI/CD, deployment |
-| `refactoring` | Code improvement |
-| `documentation` | Docs, READMEs |
+Fallback chain: specialist agent → `tasks:worker` → `general-purpose`
+
+## Acceptance Criteria Guidelines
+
+**Good ACs (outcome-focused):**
+- "User can log in with valid credentials"
+- "POST /api/users returns 201 with user data on success"
+- "Returns 400 for invalid email format"
+- "Password is hashed before storage"
+
+**Bad ACs (implementation steps):**
+- "Add handleLogin function to auth.ts"
+- "Import bcrypt library"
+- "Create user-service.ts file"
+
+ACs describe WHAT success looks like, not HOW to implement.
+
+## Definition of Done
+
+A task is complete when:
+1. All acceptance criteria checked off (`--check-ac`)
+2. Implementation notes added (`--append-notes`)
+3. Status set to "done" (`--status done`)
+4. Changes committed with task ID reference
+5. Tests pass (if applicable)
 
 ## Sub-Agents
 
-**forge-task-manager** (Planning Phase)
-- Digests implementation plans and requirements
-- Creates well-structured tasks with labels and dependencies
-- Sets priorities and organizes work breakdown
-- Use for: converting plans/PRDs into actionable tasks
+**tasks:manager** (Planning)
+- Converts plans/PRDs into actionable tasks
+- Creates tasks with labels, ACs, dependencies
 
-**forge-task-coordinator** (Execution Phase)
-- Reads existing tasks and discovers available agents
-- Matches tasks to appropriate specialists based on labels
-- Delegates with embedded task-update instructions
-- Monitors progress and verifies completion
-- Use for: coordinating implementation across multiple tasks
+**tasks:coordinator** (Execution)
+- Matches tasks to specialist agents by labels
+- Delegates with task-update instructions
+- Monitors progress to completion
 
-**forge-task-worker** (Implementation Phase)
-- Implements a single assigned task
-- Updates status, checks off ACs, adds notes
-- Reports blockers and completion
-- Use for: focused implementation work
-
-## Workflow
-
-```
-1. Planning:   User requirements → forge-task-manager → Tasks created
-2. Execution:  Tasks exist → forge-task-coordinator → Delegates to agents
-3. Implementation: Agent receives task → forge-task-worker or specialist → Work done
-```
-
-## Output Formats
-
-- `--plain`: Key=value format for agent parsing
-- `--json`: Structured JSON output
-- Default: Human-readable table/formatted output
-
-Always use `--plain` when processing task data programmatically.
+**tasks:worker** (Implementation)
+- Implements single assigned task
+- Updates status, checks ACs, reports blockers

@@ -142,6 +142,51 @@ At each level, inline `prompt` beats `promptFile`. See [docs/FORKHESTRA.md](docs
 
 Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
 
+### Forkhestra Native Agents (fk: namespace)
+
+The `fk:` namespace contains agents defined entirely in `forge/chains.json` via `systemPrompt` instead of compiled binaries. These "direct spawn" agents are spawned by forkhestra directly using `claude` CLI with the specified system prompt.
+
+**Built-in fk: agents:**
+- `fk:planner` - Creates tasks from `ralph/` requirements (read-only tools)
+- `fk:builder` - Implements one task per iteration (full tool access)
+
+**Example config:**
+```json
+{
+  "agents": {
+    "fk:planner": {
+      "systemPrompt": "system-prompts/fk/planner.md",
+      "model": "sonnet",
+      "allowedTools": ["Read", "Grep", "Glob", "Bash"]
+    }
+  }
+}
+```
+
+### ralph/ Directory Convention
+
+The `ralph/` directory holds project requirements for forkhestra workflows:
+
+| File | Purpose |
+|------|---------|
+| `ralph/PLAN.md` | High-level implementation plan and goals |
+| `ralph/SPECS.md` | Detailed specifications and requirements |
+| `ralph/AGENTS.md` | Coding conventions and project-specific context |
+
+**Usage with ralph chain:**
+```bash
+# Full workflow: plan tasks, then build
+forkhestra --chain ralph
+
+# Plan only (create tasks from requirements)
+forkhestra --chain plan
+
+# Build only (implement existing tasks)
+forkhestra --chain build
+```
+
+**State persistence:** Agents maintain state across iterations through `ralph/` files, `forge/tasks/` task files, and git commits. Each iteration reads current state and makes incremental progress.
+
 ### Key Libraries
 - `@anthropic-ai/claude-code` - Official Claude Code SDK
 - `@anthropic-ai/sdk` - Anthropic API client
