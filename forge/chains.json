@@ -5,6 +5,15 @@
     },
     "tasks:coordinator": {
       "defaultPrompt": "Execute all pending tasks in dependency order, delegating to appropriate specialists"
+    },
+    "fk:planner": {
+      "systemPrompt": "system-prompts/fk/planner.md",
+      "model": "sonnet",
+      "allowedTools": ["Read", "Grep", "Glob", "Bash"]
+    },
+    "fk:builder": {
+      "systemPrompt": "system-prompts/fk/builder.md",
+      "model": "sonnet"
     }
   },
   "chains": {
@@ -100,6 +109,25 @@
         { "agent": "git:pr" },
         { "agent": "review:pr" },
         { "agent": "git:fix" }
+      ]
+    },
+    "ralph": {
+      "description": "Forkhestra planning and building workflow. Planner creates implementation tasks, builder executes them.",
+      "steps": [
+        { "agent": "fk:planner", "iterations": 3 },
+        { "agent": "fk:builder", "iterations": 20 }
+      ]
+    },
+    "build": {
+      "description": "Run forkhestra builder to implement existing tasks.",
+      "steps": [
+        { "agent": "fk:builder", "iterations": 30 }
+      ]
+    },
+    "plan": {
+      "description": "Run forkhestra planner to create implementation tasks from requirements.",
+      "steps": [
+        { "agent": "fk:planner", "iterations": 5 }
       ]
     }
   }
