@@ -256,9 +256,9 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 
 	// Load and compose the system prompt
 	const rawSystemPrompt = await loadAgentSystemPrompt(agentConfig, resolvedCwd);
-	if (!rawSystemPrompt) {
-		// Should not happen for direct spawn agents, but guard anyway
-		console.error("[forkhestra] Direct spawn agent has no system prompt");
+	if (rawSystemPrompt === undefined) {
+		// No system prompt configured at all (empty string is valid)
+		console.error("[forkhestra] Direct spawn agent has no system prompt configured");
 		return {
 			complete: false,
 			iterations: 0,
