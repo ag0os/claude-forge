@@ -1,10 +1,10 @@
-# Forkhestra Documentation
+# Orchestra Documentation
 
-Comprehensive guide for orchestrating Claude agents with forkhestra.
+Comprehensive guide for orchestrating Claude agents with orchestra.
 
 ## Overview
 
-Forkhestra is an agent orchestration system that chains and loops Claude agents. It provides:
+Orchestra is an agent orchestration system that chains and loops Claude agents. It provides:
 
 - **Pipeline mode**: Run agents once each, in sequence
 - **Loop mode**: Run agents repeatedly until completion or max iterations
@@ -15,19 +15,19 @@ Forkhestra is an agent orchestration system that chains and loops Claude agents.
 
 ```bash
 # Run a single agent once
-forkhestra task-manager
+orchestra task-manager
 
 # Loop an agent until it signals completion (max 10 iterations)
-forkhestra task-coordinator:10
+orchestra task-coordinator:10
 
 # Run a pipeline (each agent once)
-forkhestra "task-manager -> task-coordinator"
+orchestra "task-manager -> task-coordinator"
 
 # Run a named chain from config
-forkhestra --chain plan-and-build
+orchestra --chain plan-and-build
 
 # Run with a prompt
-forkhestra task-manager:3 -p "Create tasks from requirements.md"
+orchestra task-manager:3 -p "Create tasks from requirements.md"
 ```
 
 ---
@@ -37,9 +37,9 @@ forkhestra task-manager:3 -p "Create tasks from requirements.md"
 ### Basic Syntax
 
 ```bash
-forkhestra <agent>[:iterations]              # Single agent mode
-forkhestra "<dsl>"                           # DSL chain mode
-forkhestra --chain <name> [VAR=value...]     # Config mode
+orchestra <agent>[:iterations]              # Single agent mode
+orchestra "<dsl>"                           # DSL chain mode
+orchestra --chain <name> [VAR=value...]     # Config mode
 ```
 
 ### Options
@@ -66,26 +66,26 @@ forkhestra --chain <name> [VAR=value...]     # Config mode
 
 ## DSL Syntax
 
-The forkhestra DSL provides a simple way to define agent chains:
+The orchestra DSL provides a simple way to define agent chains:
 
 ### Single Agent
 
 ```bash
 # Run once (no iteration limit, no completion marker check)
-forkhestra agent-name
+orchestra agent-name
 
 # Loop up to N iterations, watching for completion marker
-forkhestra agent-name:10
+orchestra agent-name:10
 ```
 
 ### Pipelines
 
 ```bash
 # Run agents in sequence, once each
-forkhestra "agent-a -> agent-b -> agent-c"
+orchestra "agent-a -> agent-b -> agent-c"
 
 # Chain with iteration limits per step
-forkhestra "agent-a:3 -> agent-b:10"
+orchestra "agent-a:3 -> agent-b:10"
 ```
 
 ### Behavior Summary
@@ -101,7 +101,7 @@ forkhestra "agent-a:3 -> agent-b:10"
 
 ## Prompt Support
 
-Forkhestra can pass prompts to agents, providing runtime instructions that tell agents what specific task to perform.
+Orchestra can pass prompts to agents, providing runtime instructions that tell agents what specific task to perform.
 
 ### CLI Prompts
 
@@ -109,14 +109,14 @@ CLI prompts apply to **all steps** in the chain:
 
 ```bash
 # Inline prompt
-forkhestra task-manager:3 --prompt "Create tasks from plan.md"
-forkhestra task-manager:3 -p "Create tasks from plan.md"
+orchestra task-manager:3 --prompt "Create tasks from plan.md"
+orchestra task-manager:3 -p "Create tasks from plan.md"
 
 # Prompt from file
-forkhestra task-manager:3 --prompt-file prompts/instructions.md
+orchestra task-manager:3 --prompt-file prompts/instructions.md
 
 # With config chain (overrides all config prompts)
-forkhestra --chain plan-and-build --prompt "Focus on authentication feature"
+orchestra --chain plan-and-build --prompt "Focus on authentication feature"
 ```
 
 ### Config Prompts
@@ -214,7 +214,7 @@ Variables (`${VAR_NAME}`) are substituted in prompt fields:
 Run with variables:
 
 ```bash
-forkhestra --chain build-feature FEATURE_NAME=authentication REQUIREMENTS_FILE=docs/auth-spec.md
+orchestra --chain build-feature FEATURE_NAME=authentication REQUIREMENTS_FILE=docs/auth-spec.md
 ```
 
 ### Prompt File Paths
@@ -223,10 +223,10 @@ Prompt files are resolved relative to the working directory (`--cwd` or current 
 
 ```bash
 # Reads ./prompts/instructions.md
-forkhestra task-manager:3 --prompt-file prompts/instructions.md
+orchestra task-manager:3 --prompt-file prompts/instructions.md
 
 # With explicit cwd
-forkhestra task-manager:3 --cwd /path/to/project --prompt-file prompts/instructions.md
+orchestra task-manager:3 --cwd /path/to/project --prompt-file prompts/instructions.md
 # Reads /path/to/project/prompts/instructions.md
 ```
 
@@ -236,7 +236,7 @@ The same prompt applies to every iteration of a looping agent. Agents track thei
 
 ```bash
 # Same prompt used for all 10 iterations
-forkhestra task-coordinator:10 -p "Complete all pending tasks"
+orchestra task-coordinator:10 -p "Complete all pending tasks"
 ```
 
 ---
@@ -313,12 +313,12 @@ Configuration is stored in `forge/orch/chains.json` at the project root.
 
 ## Completion Marker Contract
 
-Agents participating in forkhestra loops must output `ORCHESTRA_COMPLETE` on its own line when their work is done.
+Agents participating in orchestra loops must output `ORCHESTRA_COMPLETE` on its own line when their work is done.
 
 ### How It Works
 
-1. Forkhestra spawns the agent and streams stdout
-2. After each iteration, forkhestra checks if stdout contained `ORCHESTRA_COMPLETE`
+1. Orchestra spawns the agent and streams stdout
+2. After each iteration, orchestra checks if stdout contained `ORCHESTRA_COMPLETE`
 3. If marker detected: stop looping, mark step as complete
 4. If not detected: continue to next iteration (up to max)
 
@@ -347,14 +347,14 @@ if (workComplete) {
 
 ```bash
 # Create tasks, then implement them
-forkhestra "task-manager -> task-coordinator"
+orchestra "task-manager -> task-coordinator"
 ```
 
 ### Loop with Prompt
 
 ```bash
 # Keep coordinating until all tasks done (max 15 iterations)
-forkhestra task-coordinator:15 -p "Complete all high-priority tasks first"
+orchestra task-coordinator:15 -p "Complete all high-priority tasks first"
 ```
 
 ### Config Chain with Variables
@@ -378,7 +378,7 @@ forkhestra task-coordinator:15 -p "Complete all high-priority tasks first"
 ```
 
 ```bash
-forkhestra --chain implement-task TASK_ID=TASK-001
+orchestra --chain implement-task TASK_ID=TASK-001
 ```
 
 ### Multi-Step with Different Prompts
@@ -409,26 +409,26 @@ forkhestra --chain implement-task TASK_ID=TASK-001
 
 ```bash
 # Config has default prompts, but this overrides ALL of them
-forkhestra --chain full-workflow --prompt "Focus only on authentication tasks"
+orchestra --chain full-workflow --prompt "Focus only on authentication tasks"
 ```
 
 ### Dry Run to Preview Prompts
 
 ```bash
-forkhestra --chain full-workflow --dry-run
+orchestra --chain full-workflow --dry-run
 ```
 
 Output shows resolved prompts for each step:
 
 ```
-[forkhestra] Dry run - would execute the following chain:
+[orchestra] Dry run - would execute the following chain:
 
   1. task-manager - loop up to 2 iterations
        prompt: "Break down requirements.md into atomic tasks with clear ACs"
   2. task-coordinator - loop up to 15 iterations
        prompt: "Implement tasks in dependency order, running tests after each"
 
-[forkhestra] Dry run complete. No agents were executed.
+[orchestra] Dry run complete. No agents were executed.
 ```
 
 ---
@@ -475,7 +475,7 @@ Error: Variable 'TASK_ID' referenced in 'forge-task-worker' but not provided
 Pass the variable via CLI:
 
 ```bash
-forkhestra --chain single-task TASK_ID=TASK-001
+orchestra --chain single-task TASK_ID=TASK-001
 ```
 
 ---
@@ -493,7 +493,7 @@ forkhestra --chain single-task TASK_ID=TASK-001
 
 ## Direct Spawn Mode
 
-Forkhestra supports two ways to define agents:
+Orchestra supports two ways to define agents:
 
 1. **Binary spawn**: Agents are compiled TypeScript binaries in the `agents/` directory
 2. **Direct spawn**: Agents are config-only definitions that spawn `claude` CLI directly with a system prompt
@@ -509,7 +509,7 @@ Direct spawn mode allows you to define lightweight agents entirely through confi
 
 **Binary spawn** is the traditional approach where agents are compiled TypeScript files that use the `@anthropic-ai/claude-code` SDK. These agents have full control over how they spawn Claude and can implement custom logic.
 
-**Direct spawn** is simpler: you define a system prompt file and optional configuration, and forkhestra spawns `claude` directly with those settings. This is ideal for agents that are purely defined by their system prompt.
+**Direct spawn** is simpler: you define a system prompt file and optional configuration, and orchestra spawns `claude` directly with those settings. This is ideal for agents that are purely defined by their system prompt.
 
 ### Direct Spawn AgentConfig Fields
 
@@ -530,14 +530,14 @@ When defining a direct spawn agent in the `agents` section of `forge/orch/chains
 
 ### Mode Awareness
 
-When forkhestra spawns an agent directly, it automatically prepends a mode awareness prefix to the system prompt. This prefix informs Claude that:
+When orchestra spawns an agent directly, it automatically prepends a mode awareness prefix to the system prompt. This prefix informs Claude that:
 
 - It is running in headless/non-interactive mode
 - It cannot ask the user questions
 - It must make autonomous decisions
 - It must output `ORCHESTRA_COMPLETE` when finished
 
-This ensures direct spawn agents behave correctly in the forkhestra orchestration loop.
+This ensures direct spawn agents behave correctly in the orchestra orchestration loop.
 
 ### Example: Direct Spawn Configuration
 
@@ -634,7 +634,7 @@ project/
 
 ## Built-in Direct Spawn Agents
 
-Forkhestra includes two built-in direct spawn agents for planning and building workflows.
+Orchestra includes two built-in direct spawn agents for planning and building workflows.
 
 ### planner
 
@@ -693,7 +693,7 @@ Three built-in chains use the direct spawn agents for common workflows.
 Full planning and building workflow.
 
 ```bash
-forkhestra --chain build-all
+orchestra --chain build-all
 ```
 
 **Steps:**
@@ -707,7 +707,7 @@ forkhestra --chain build-all
 Implementation only, using existing tasks.
 
 ```bash
-forkhestra --chain build
+orchestra --chain build
 ```
 
 **Steps:**
@@ -720,7 +720,7 @@ forkhestra --chain build
 Planning only, creating tasks without implementation.
 
 ```bash
-forkhestra --chain plan
+orchestra --chain plan
 ```
 
 **Steps:**
@@ -737,15 +737,15 @@ echo "# User API Plan\nBuild CRUD endpoints for users" > forge/orch/specs/PLAN.m
 echo "# Specifications\n- POST /users creates user\n- GET /users/:id returns user" > forge/orch/specs/SPECS.md
 
 # 2. Generate tasks (review before building)
-forkhestra --chain plan
+orchestra --chain plan
 
 # 3. Review generated tasks
 forge-tasks list
 
 # 4. Run full workflow (or just build if tasks look good)
-forkhestra --chain build-all
+orchestra --chain build-all
 # Or skip planning:
-forkhestra --chain build
+orchestra --chain build
 ```
 
 ### Customizing with Prompts
@@ -754,11 +754,11 @@ Override the default behavior with runtime prompts:
 
 ```bash
 # Focus planner on specific requirements
-forkhestra --chain plan --prompt "Focus only on authentication-related requirements"
+orchestra --chain plan --prompt "Focus only on authentication-related requirements"
 
 # Guide builder to specific tasks
-forkhestra --chain build --prompt "Start with the database schema tasks"
+orchestra --chain build --prompt "Start with the database schema tasks"
 
 # Full workflow with guidance
-forkhestra --chain build-all --prompt "Prioritize backend tasks first"
+orchestra --chain build-all --prompt "Prioritize backend tasks first"
 ```

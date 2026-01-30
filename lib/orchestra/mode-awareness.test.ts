@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra mode awareness utilities
+ * Tests for orchestra mode awareness utilities
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
@@ -14,7 +14,7 @@ import { COMPLETION_MARKER } from "./runner";
 import type { AgentConfig } from "./config";
 
 // Create temporary test directory
-const tmpDir = "/tmp/forkhestra-mode-awareness-test";
+const tmpDir = "/tmp/orchestra-mode-awareness-test";
 
 beforeAll(() => {
 	mkdirSync(join(tmpDir, "prompts"), { recursive: true });

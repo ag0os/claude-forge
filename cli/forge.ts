@@ -49,7 +49,7 @@ switch (subcommand) {
 	}
 
 	case "orch": {
-		const result = spawnSync(resolve(getBinDir(), "orch:forkhestra"), args, {
+		const result = spawnSync(resolve(getBinDir(), "orchestra"), args, {
 			stdio: "inherit",
 			cwd: process.cwd(),
 		});

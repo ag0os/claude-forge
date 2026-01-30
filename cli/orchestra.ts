@@ -1,14 +1,14 @@
 #!/usr/bin/env -S bun run
 
 /**
- * FORKHESTRA: CLI entry point for orchestrating agent chains
+ * ORCHESTRA: CLI entry point for orchestrating agent chains
  *
  * Supports multiple modes:
- * - Single agent with loop: `forkhestra agent:N` - run agent up to N iterations
- * - Pipeline mode: `forkhestra "a -> b"` - run agents once each, sequentially
- * - Chain mode: `forkhestra "a:3 -> b:10"` - run agents with iteration limits
- * - Config mode: `forkhestra --chain name` - load named chain from forge/chains.json
- * - Config with vars: `forkhestra --chain name VAR=value` - substitute variables
+ * - Single agent with loop: `orchestra agent:N` - run agent up to N iterations
+ * - Pipeline mode: `orchestra "a -> b"` - run agents once each, sequentially
+ * - Chain mode: `orchestra "a:3 -> b:10"` - run agents with iteration limits
+ * - Config mode: `orchestra --chain name` - load named chain from forge/chains.json
+ * - Config with vars: `orchestra --chain name VAR=value` - substitute variables
  *
  * Options:
  * --cwd <path>          Working directory for all agents
@@ -19,7 +19,7 @@
 
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { type ChainResult, executeChain } from "../../lib/forkhestra/chain";
+import { type ChainResult, executeChain } from "../lib/orchestra/chain";
 import {
 	type AgentConfig,
 	type ChainConfig,
@@ -27,9 +27,9 @@ import {
 	loadConfig,
 	substituteVars,
 	substituteVarsInChain,
-} from "../../lib/forkhestra/config";
-import { type ChainStep, parseDSL } from "../../lib/forkhestra/parser";
-import { resolvePrompt } from "../../lib/forkhestra/prompt";
+} from "../lib/orchestra/config";
+import { type ChainStep, parseDSL } from "../lib/orchestra/parser";
+import { resolvePrompt } from "../lib/orchestra/prompt";
 
 // Exit codes
 const EXIT_COMPLETE = 0;
@@ -95,24 +95,24 @@ function getNonVariablePositionals(positionals: string[]): string[] {
  */
 function printUsage() {
 	console.log(`
-forkhestra - Orchestrate chains of Claude agents
+orchestra - Orchestrate chains of Claude agents
 
 USAGE:
-  forkhestra <agent>[:iterations]              Single agent mode
-  forkhestra "<dsl>"                           DSL chain mode
-  forkhestra --chain <name> [VAR=value...]     Config mode
+  orchestra <agent>[:iterations]              Single agent mode
+  orchestra "<dsl>"                           DSL chain mode
+  orchestra --chain <name> [VAR=value...]     Config mode
 
 EXAMPLES:
-  forkhestra task-coordinator:10               Loop task-coordinator up to 10 times
-  forkhestra "task-manager -> task-coordinator" Run pipeline (each once)
-  forkhestra "task-manager:3 -> task-coordinator:10" Chain with iterations
-  forkhestra --chain plan-and-build            Load chain from forge/chains.json
-  forkhestra --chain single-task TASK_ID=001   Config with variable substitution
+  orchestra task-coordinator:10               Loop task-coordinator up to 10 times
+  orchestra "task-manager -> task-coordinator" Run pipeline (each once)
+  orchestra "task-manager:3 -> task-coordinator:10" Chain with iterations
+  orchestra --chain plan-and-build            Load chain from forge/chains.json
+  orchestra --chain single-task TASK_ID=001   Config with variable substitution
 
   # With prompts
-  forkhestra task-coordinator:10 -p "Focus on TASK-001"
-  forkhestra --chain build --prompt "Implement the login feature"
-  forkhestra agent:5 --prompt-file prompts/instructions.md
+  orchestra task-coordinator:10 -p "Focus on TASK-001"
+  orchestra --chain build --prompt "Implement the login feature"
+  orchestra agent:5 --prompt-file prompts/instructions.md
 
 OPTIONS:
   --cwd <path>          Working directory for all agents
@@ -137,7 +137,7 @@ function printSummary(result: ChainResult, steps: ChainStep[]) {
 	const completedSteps = result.steps.filter((s) => s.result.complete).length;
 	const totalSteps = steps.length;
 
-	console.log("\n[forkhestra] Summary:");
+	console.log("\n[orchestra] Summary:");
 
 	for (let i = 0; i < result.steps.length; i++) {
 		const stepResult = result.steps[i];
@@ -166,17 +166,17 @@ function printSummary(result: ChainResult, steps: ChainStep[]) {
 
 	if (result.success) {
 		console.log(
-			`\n[forkhestra] Chain complete (${completedSteps}/${totalSteps} steps)`,
+			`\n[orchestra] Chain complete (${completedSteps}/${totalSteps} steps)`,
 		);
 	} else {
 		console.log(
-			`\n[forkhestra] Chain incomplete (${completedSteps}/${totalSteps} steps)`,
+			`\n[orchestra] Chain incomplete (${completedSteps}/${totalSteps} steps)`,
 		);
 		if (result.failedAt !== undefined) {
 			const failedStep = steps[result.failedAt];
 			if (failedStep) {
 				console.log(
-					`[forkhestra] Failed at step ${result.failedAt + 1}: ${failedStep.agent}`,
+					`[orchestra] Failed at step ${result.failedAt + 1}: ${failedStep.agent}`,
 				);
 			}
 		}
@@ -203,7 +203,7 @@ async function printDryRun(options: DryRunOptions) {
 		options;
 	const resolvedCwd = cwd || process.cwd();
 
-	console.log("[forkhestra] Dry run - would execute the following chain:\n");
+	console.log("[orchestra] Dry run - would execute the following chain:\n");
 
 	if (cwd) {
 		console.log(`Working directory: ${cwd}\n`);
@@ -253,7 +253,7 @@ async function printDryRun(options: DryRunOptions) {
 		}
 	}
 
-	console.log("\n[forkhestra] Dry run complete. No agents were executed.");
+	console.log("\n[orchestra] Dry run complete. No agents were executed.");
 }
 
 /**
@@ -287,7 +287,7 @@ async function main() {
 			// Config mode: load chain from forge/chains.json with fallback to util:forge-config
 			const config = await loadConfig(cwd, { verbose });
 			if (!config) {
-				console.error(`[forkhestra] Error: No chain configuration found.`);
+				console.error(`[orchestra] Error: No chain configuration found.`);
 				console.error(`  Checked: ${cwd}/forge/chains.json (not found)`);
 				console.error(
 					`  Checked: util:forge-config chains (not in PATH or returned error)`,
@@ -322,15 +322,15 @@ async function main() {
 			agentDefaults = config.agents;
 
 			if (verbose) {
-				console.log(`[forkhestra] Loaded chain '${chainName}' from config`);
+				console.log(`[orchestra] Loaded chain '${chainName}' from config`);
 			}
 		} else {
 			// DSL mode or single agent mode
 			const nonVarPositionals = getNonVariablePositionals(positionals);
 
 			if (nonVarPositionals.length === 0) {
-				console.error("[forkhestra] Error: No agent or chain specified");
-				console.error("Run 'forkhestra --help' for usage information");
+				console.error("[orchestra] Error: No agent or chain specified");
+				console.error("Run 'orchestra --help' for usage information");
 				process.exit(EXIT_ERROR);
 			}
 
@@ -341,13 +341,13 @@ async function main() {
 				steps = parseDSL(dsl);
 			} catch (error) {
 				console.error(
-					`[forkhestra] Error parsing DSL: ${error instanceof Error ? error.message : String(error)}`,
+					`[orchestra] Error parsing DSL: ${error instanceof Error ? error.message : String(error)}`,
 				);
 				process.exit(EXIT_ERROR);
 			}
 
 			if (verbose) {
-				console.log(`[forkhestra] Parsed DSL: ${dsl}`);
+				console.log(`[orchestra] Parsed DSL: ${dsl}`);
 			}
 		}
 
@@ -370,14 +370,14 @@ async function main() {
 			if (step) {
 				if (step.loop) {
 					console.log(
-						`[forkhestra] Starting: ${step.agent} (max ${step.iterations} iterations)`,
+						`[orchestra] Starting: ${step.agent} (max ${step.iterations} iterations)`,
 					);
 				} else {
-					console.log(`[forkhestra] Running: ${step.agent}`);
+					console.log(`[orchestra] Running: ${step.agent}`);
 				}
 			}
 		} else {
-			console.log(`[forkhestra] Starting chain with ${steps.length} steps`);
+			console.log(`[orchestra] Starting chain with ${steps.length} steps`);
 		}
 
 		// Execute the chain
@@ -402,7 +402,7 @@ async function main() {
 		}
 	} catch (error) {
 		console.error(
-			`[forkhestra] Error: ${error instanceof Error ? error.message : String(error)}`,
+			`[orchestra] Error: ${error instanceof Error ? error.message : String(error)}`,
 		);
 		process.exit(EXIT_ERROR);
 	}

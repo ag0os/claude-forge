@@ -4,7 +4,7 @@
  * FIX: Read PR review comments and fix the issues
  *
  * Fetches review comments from the current branch's PR and fixes any issues found.
- * Designed to run after review:pr in a forkhestra chain.
+ * Designed to run after review:pr in an orchestra chain.
  *
  * Usage:
  *   bun run agents/git/fix.ts              # Auto-detect PR for current branch

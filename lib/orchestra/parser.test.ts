@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra DSL parser
+ * Tests for orchestra DSL parser
  * Covers parsing of agent chains with optional iteration counts
  */
 

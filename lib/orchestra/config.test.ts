@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra config loader and schema validation
+ * Tests for orchestra config loader and schema validation
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
@@ -17,7 +17,7 @@ import {
 } from "./config";
 
 // Create temporary test directory
-const tmpDir = "/tmp/forkhestra-config-test";
+const tmpDir = "/tmp/orchestra-config-test";
 
 beforeAll(() => {
 	mkdirSync(join(tmpDir, "forge/orch"), { recursive: true });
@@ -491,7 +491,7 @@ describe("config schema validation", () => {
 		});
 	});
 
-	describe("ForkhestraConfig agents section", () => {
+	describe("OrchestraConfig agents section", () => {
 		test("config without agents section is valid", async () => {
 			writeConfig({
 				chains: {
@@ -975,7 +975,7 @@ describe("isDirectSpawnAgent", () => {
 });
 
 describe("config resolution fallback", () => {
-	const emptyDir = "/tmp/forkhestra-config-test-empty";
+	const emptyDir = "/tmp/orchestra-config-test-empty";
 
 	beforeAll(() => {
 		mkdirSync(emptyDir, { recursive: true });

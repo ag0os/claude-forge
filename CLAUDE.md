@@ -18,7 +18,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun check` - Run Biome checks without fixes
 - `bun lint:fix` - Apply unsafe fixes with Biome
 - `bun run compile:forge-tasks` - Compile forge-tasks CLI to binary
-- `bun run compile:forkhestra` - Compile forkhestra CLI to binary
+- `bun run compile:orchestra` - Compile orchestra CLI to binary
 - `bun test:forge-tasks` - Run forge-tasks tests
 
 ## Code Architecture
@@ -34,7 +34,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bin/` - Compiled binaries (generated)
 - `docs/` - Documentation for framework features
 - `forge-tasks/` - Hybrid task management system (CLI + sub-agents). See [docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)
-- `forkhestra/` - Agent orchestration library for chaining and looping agents
+- `lib/orchestra/` - Agent orchestration library for chaining and looping agents
 
 ### Agent Namespacing
 
@@ -49,15 +49,15 @@ Agents are namespaced via subdirectories. The directory structure determines the
 
 **Private agents**: Create `agents/local/` for personal agents that won't be committed (gitignored).
 
-**Usage with forkhestra**:
+**Usage with orchestra**:
 ```bash
-forkhestra "tasks:manager -> tasks:coordinator:10"
-forkhestra "plan:riff -> build:builder"
+orchestra "tasks:manager -> tasks:coordinator:10"
+orchestra "plan:riff -> build:builder"
 ```
 
-## Forkhestra - Agent Orchestration
+## Orchestra - Agent Orchestration
 
-Forkhestra provides two modes for orchestrating agents:
+Orchestra provides two modes for orchestrating agents:
 - **Pipeline mode**: Run agents once each, in sequence
 - **Loop mode**: Run agents repeatedly until they output `ORCHESTRA_COMPLETE` or hit max iterations
 
@@ -65,22 +65,22 @@ Forkhestra provides two modes for orchestrating agents:
 
 ```bash
 # Pipeline mode - run agents once each
-forkhestra "tasks:manager -> tasks:coordinator"
+orchestra "tasks:manager -> tasks:coordinator"
 
 # Loop mode - single agent with max iterations
-forkhestra tasks:coordinator:10
+orchestra tasks:coordinator:10
 
 # Chain mode with iterations
-forkhestra "tasks:manager:3 -> tasks:coordinator:10"
+orchestra "tasks:manager:3 -> tasks:coordinator:10"
 
 # Config mode - named chains
-forkhestra --chain plan-and-build
-forkhestra --chain single-task TASK_ID=TASK-001
+orchestra --chain plan-and-build
+orchestra --chain single-task TASK_ID=TASK-001
 
 # With prompts - pass instructions to agents
-forkhestra tasks:coordinator:10 -p "Focus on TASK-001"
-forkhestra --chain build --prompt "Implement the login feature"
-forkhestra plan:planner:5 --prompt-file prompts/instructions.md
+orchestra tasks:coordinator:10 -p "Focus on TASK-001"
+orchestra --chain build --prompt "Implement the login feature"
+orchestra plan:planner:5 --prompt-file prompts/instructions.md
 
 # Options
 --cwd <path>           Working directory
@@ -136,15 +136,15 @@ When multiple prompt sources exist, the highest priority wins:
 | 3 | Chain `prompt` / `promptFile` | All steps in chain |
 | 4 | Agent `defaultPrompt` / `defaultPromptFile` | Fallback for this agent |
 
-At each level, inline `prompt` beats `promptFile`. See [docs/FORKHESTRA.md](docs/FORKHESTRA.md) for full documentation.
+At each level, inline `prompt` beats `promptFile`. See [docs/ORCHESTRA.md](docs/ORCHESTRA.md) for full documentation.
 
 ### Completion Marker Contract
 
-Agents participating in forkhestra loops must output `ORCHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
+Agents participating in orchestra loops must output `ORCHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
 
 ### Direct Spawn Agents
 
-Direct spawn agents are defined entirely in `forge/orch/chains.json` via `systemPrompt` instead of compiled binaries. These agents are spawned by forkhestra directly using `claude` CLI with the specified system prompt.
+Direct spawn agents are defined entirely in `forge/orch/chains.json` via `systemPrompt` instead of compiled binaries. These agents are spawned by orchestra directly using `claude` CLI with the specified system prompt.
 
 **Built-in direct spawn agents:**
 - `planner` - Creates tasks from `forge/orch/specs/` requirements (read-only tools)
@@ -165,7 +165,7 @@ Direct spawn agents are defined entirely in `forge/orch/chains.json` via `system
 
 ### forge/orch/specs/ Directory Convention
 
-The `forge/orch/specs/` directory holds project requirements for forkhestra workflows:
+The `forge/orch/specs/` directory holds project requirements for orchestra workflows:
 
 | File | Purpose |
 |------|---------|
@@ -176,13 +176,13 @@ The `forge/orch/specs/` directory holds project requirements for forkhestra work
 **Usage with build-all chain:**
 ```bash
 # Full workflow: plan tasks, then build
-forkhestra --chain build-all
+orchestra --chain build-all
 
 # Plan only (create tasks from requirements)
-forkhestra --chain plan
+orchestra --chain plan
 
 # Build only (implement existing tasks)
-forkhestra --chain build
+orchestra --chain build
 ```
 
 **State persistence:** Agents maintain state across iterations through `forge/orch/specs/` files, `forge/tasks/` task files, and git commits. Each iteration reads current state and makes incremental progress.

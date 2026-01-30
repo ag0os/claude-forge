@@ -1,5 +1,5 @@
 /**
- * DSL parser for forkhestra chain definitions
+ * DSL parser for orchestra chain definitions
  *
  * Parses DSL strings into structured ChainStep arrays.
  * Supports both pipeline mode (no iterations) and loop mode (with iterations).

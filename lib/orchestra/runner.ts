@@ -1,5 +1,5 @@
 /**
- * Core runner for forkhestra agent execution
+ * Core runner for orchestra agent execution
  *
  * Spawns agent binaries or Claude directly, streams output, detects completion markers,
  * and handles loop/single-run modes.
@@ -166,7 +166,7 @@ async function runBinary(options: RunOptions): Promise<RunResult> {
 
 			if (verbose) {
 				console.log(
-					`[forkhestra] Iteration ${iterations}/${maxIterations}`,
+					`[orchestra] Iteration ${iterations}/${maxIterations}`,
 				);
 			}
 
@@ -258,7 +258,7 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 	const rawSystemPrompt = await loadAgentSystemPrompt(agentConfig, resolvedCwd);
 	if (rawSystemPrompt === undefined) {
 		// No system prompt configured at all (empty string is valid)
-		console.error("[forkhestra] Direct spawn agent has no system prompt configured");
+		console.error("[orchestra] Direct spawn agent has no system prompt configured");
 		return {
 			complete: false,
 			iterations: 0,
@@ -331,7 +331,7 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 
 			if (verbose) {
 				console.log(
-					`[forkhestra] Iteration ${iterations}/${maxIterations}`,
+					`[orchestra] Iteration ${iterations}/${maxIterations}`,
 				);
 			}
 

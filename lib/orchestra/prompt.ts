@@ -1,5 +1,5 @@
 /**
- * Prompt resolution utilities for forkhestra
+ * Prompt resolution utilities for orchestra
  *
  * Handles reading prompt files and resolving prompts from multiple sources
  * with proper priority ordering.

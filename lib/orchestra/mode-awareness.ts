@@ -1,5 +1,5 @@
 /**
- * Mode awareness utilities for forkhestra
+ * Mode awareness utilities for orchestra
  *
  * Provides constants and helpers for composing system prompts that inform
  * Claude about its headless execution context. This addresses Claude Code
@@ -13,15 +13,15 @@ import type { AgentConfig } from "./config";
 import { COMPLETION_MARKER } from "./constants";
 
 /**
- * Prefix that informs Claude about headless execution mode and forkhestra contract.
+ * Prefix that informs Claude about headless execution mode and orchestra contract.
  *
  * This prefix should be prepended to all agent system prompts when running
- * via forkhestra to ensure Claude understands:
+ * via orchestra to ensure Claude understands:
  * - It's running in headless/non-interactive mode
  * - It cannot ask the user questions
  * - It must output the completion marker when finished
  */
-export const MODE_AWARENESS_PREFIX = `You are running in HEADLESS mode via forkhestra orchestration.
+export const MODE_AWARENESS_PREFIX = `You are running in HEADLESS mode via orchestra orchestration.
 
 IMPORTANT CONSTRAINTS:
 - You are in non-interactive mode and CANNOT ask the user questions
@@ -33,7 +33,7 @@ COMPLETION CONTRACT:
 When you have finished your task, you MUST output the following marker on its own line:
 ${COMPLETION_MARKER}
 
-This marker signals to the forkhestra orchestrator that you have completed your work.
+This marker signals to the orchestra orchestrator that you have completed your work.
 Output this marker ONLY when you are truly done with your assigned task.
 
 ---

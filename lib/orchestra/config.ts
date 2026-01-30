@@ -1,5 +1,5 @@
 /**
- * Config loader for forkhestra chain definitions
+ * Config loader for orchestra chain definitions
  *
  * Loads and validates forge/orch/chains.json configuration file.
  * Uses fallback resolution:
@@ -91,7 +91,7 @@ export function isDirectSpawnAgent(agent: AgentConfig): boolean {
 /**
  * Root configuration structure from forge/orch/chains.json
  */
-export interface ForkhestraConfig {
+export interface OrchestraConfig {
 	chains: Record<string, ChainConfig>;
 	/** Agent-specific default configurations */
 	agents?: Record<string, AgentConfig>;
@@ -125,14 +125,14 @@ const CONFIG_PATH = "forge/orch/chains.json";
 export async function loadConfig(
 	cwd: string,
 	options?: LoadConfigOptions
-): Promise<ForkhestraConfig | null> {
+): Promise<OrchestraConfig | null> {
 	const verbose = options?.verbose ?? false;
 	const configPath = join(cwd, CONFIG_PATH);
 
 	// 1. Try local config first (takes precedence)
 	if (existsSync(configPath)) {
 		if (verbose) {
-			console.log(`[forkhestra] Loading config from local: ${configPath}`);
+			console.log(`[orchestra] Loading config from local: ${configPath}`);
 		}
 
 		// Read and parse the file
@@ -162,7 +162,7 @@ export async function loadConfig(
 	// 2. Try forge-config chains as fallback
 	if (verbose) {
 		console.log(
-			"[forkhestra] Local config not found, trying util:forge-config chains..."
+			"[orchestra] Local config not found, trying util:forge-config chains..."
 		);
 	}
 
@@ -173,7 +173,7 @@ export async function loadConfig(
 
 	// 3. No config found
 	if (verbose) {
-		console.log("[forkhestra] No config found from any source");
+		console.log("[orchestra] No config found from any source");
 	}
 	return null;
 }
@@ -186,7 +186,7 @@ export async function loadConfig(
  */
 async function loadFromForgeConfig(
 	verbose: boolean
-): Promise<ForkhestraConfig | null> {
+): Promise<OrchestraConfig | null> {
 	try {
 		// Use Bun shell to execute util:forge-config chains
 		// nothrow prevents exceptions on non-zero exit
@@ -197,12 +197,12 @@ async function loadFromForgeConfig(
 			if (verbose) {
 				const stderr = result.stderr.toString().trim();
 				console.log(
-					`[forkhestra] util:forge-config chains failed with exit code ${result.exitCode}`
+					`[orchestra] util:forge-config chains failed with exit code ${result.exitCode}`
 				);
 				if (stderr) {
-					console.log(`[forkhestra] stderr: ${stderr}`);
+					console.log(`[orchestra] stderr: ${stderr}`);
 				}
-				console.log(`[forkhestra] PATH: ${process.env.PATH}`);
+				console.log(`[orchestra] PATH: ${process.env.PATH}`);
 			}
 			return null;
 		}
@@ -210,7 +210,7 @@ async function loadFromForgeConfig(
 		const output = result.stdout.toString().trim();
 		if (!output) {
 			if (verbose) {
-				console.log("[forkhestra] util:forge-config chains returned empty output");
+				console.log("[orchestra] util:forge-config chains returned empty output");
 			}
 			return null;
 		}
@@ -222,14 +222,14 @@ async function loadFromForgeConfig(
 		} catch (error) {
 			if (verbose) {
 				console.log(
-					`[forkhestra] util:forge-config chains returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+					`[orchestra] util:forge-config chains returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`
 				);
 			}
 			return null;
 		}
 
 		if (verbose) {
-			console.log("[forkhestra] Loaded config from util:forge-config chains");
+			console.log("[orchestra] Loaded config from util:forge-config chains");
 		}
 
 		// Validate and transform the config
@@ -238,9 +238,9 @@ async function loadFromForgeConfig(
 		// This catches errors like "command not found" when util:forge-config is not in PATH
 		if (verbose) {
 			console.log(
-				`[forkhestra] util:forge-config not available: ${error instanceof Error ? error.message : String(error)}`
+				`[orchestra] util:forge-config not available: ${error instanceof Error ? error.message : String(error)}`
 			);
-			console.log(`[forkhestra] PATH: ${process.env.PATH}`);
+			console.log(`[orchestra] PATH: ${process.env.PATH}`);
 		}
 		return null;
 	}
@@ -257,7 +257,7 @@ async function loadFromForgeConfig(
 function validateAndTransformConfig(
 	rawConfig: unknown,
 	configPath: string
-): ForkhestraConfig {
+): OrchestraConfig {
 	// Check that config is an object
 	if (typeof rawConfig !== "object" || rawConfig === null) {
 		throw new Error(
@@ -669,7 +669,7 @@ function validateAndTransformStep(
  * @returns Array of ChainStep objects for the named chain
  * @throws Error if chain name is not found
  */
-export function getChain(config: ForkhestraConfig, name: string): ChainStep[] {
+export function getChain(config: OrchestraConfig, name: string): ChainStep[] {
 	if (!(name in config.chains)) {
 		const availableChains = Object.keys(config.chains);
 		const availableList =
