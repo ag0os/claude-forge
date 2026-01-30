@@ -58,7 +58,7 @@ Always use `--plain` when processing task data programmatically.
 | `refactoring` | Code improvement | refactoring specialists |
 | `documentation` | Docs, READMEs | `general-purpose` |
 
-Fallback chain: specialist agent → `forge-task-worker` → `general-purpose`
+Fallback chain: specialist agent → `tasks:worker` → `general-purpose`
 
 ## Acceptance Criteria Guidelines
 
@@ -86,15 +86,15 @@ A task is complete when:
 
 ## Sub-Agents
 
-**forge-task-manager** (Planning)
+**tasks:manager** (Planning)
 - Converts plans/PRDs into actionable tasks
 - Creates tasks with labels, ACs, dependencies
 
-**forge-task-coordinator** (Execution)
+**tasks:coordinator** (Execution)
 - Matches tasks to specialist agents by labels
 - Delegates with task-update instructions
 - Monitors progress to completion
 
-**forge-task-worker** (Implementation)
+**tasks:worker** (Implementation)
 - Implements single assigned task
 - Updates status, checks ACs, reports blockers
