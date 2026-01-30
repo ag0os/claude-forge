@@ -155,15 +155,19 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 				);
 			}
 
+			// Look up agent config for this step (enables direct spawn if configured)
+			const agentConfig = agentDefaults?.[step.agent];
+
 			// Execute the step
 			const result = await run({
 				agent: step.agent,
 				maxIterations: step.iterations,
 				loop: step.loop,
 				args: mergedArgs.length > 0 ? mergedArgs : undefined,
-				cwd,
+				cwd: resolvedCwd,
 				verbose,
 				prompt: resolvedPrompt,
+				agentConfig,
 			});
 
 			stepResults.push({
