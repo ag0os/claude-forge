@@ -10,8 +10,10 @@ import {
 	substituteVars,
 	substituteVarsInChain,
 	getChain,
+	isDirectSpawnAgent,
 	type ChainStep,
 	type ChainConfig,
+	type AgentConfig,
 } from "./config";
 
 // Create temporary test directory
@@ -125,6 +127,367 @@ describe("config schema validation", () => {
 			await expect(loadConfig(tmpDir)).rejects.toThrow(
 				"agent 'my-agent' must be an object"
 			);
+		});
+
+		// Direct spawn fields tests
+		describe("direct spawn fields", () => {
+			test("accepts valid agent config with systemPrompt", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							systemPrompt: "prompts/system.md",
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.systemPrompt).toBe(
+					"prompts/system.md"
+				);
+			});
+
+			test("accepts valid agent config with systemPromptText", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							systemPromptText: "You are a helpful assistant.",
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.systemPromptText).toBe(
+					"You are a helpful assistant."
+				);
+			});
+
+			test("accepts valid agent config with mcpConfig", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							mcpConfig: "settings/agent.mcp.json",
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.mcpConfig).toBe(
+					"settings/agent.mcp.json"
+				);
+			});
+
+			test("accepts valid agent config with settings", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							settings: "settings/agent.settings.json",
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.settings).toBe(
+					"settings/agent.settings.json"
+				);
+			});
+
+			test("accepts valid agent config with model", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"sonnet-agent": { model: "sonnet" },
+						"opus-agent": { model: "opus" },
+						"haiku-agent": { model: "haiku" },
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["sonnet-agent"]?.model).toBe("sonnet");
+				expect(config?.agents?.["opus-agent"]?.model).toBe("opus");
+				expect(config?.agents?.["haiku-agent"]?.model).toBe("haiku");
+			});
+
+			test("accepts valid agent config with maxTurns", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							maxTurns: 50,
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.maxTurns).toBe(50);
+			});
+
+			test("accepts valid agent config with allowedTools", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							allowedTools: ["Read", "Write", "Bash"],
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.allowedTools).toEqual([
+					"Read",
+					"Write",
+					"Bash",
+				]);
+			});
+
+			test("accepts valid agent config with disallowedTools", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							disallowedTools: ["WebFetch", "WebSearch"],
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.disallowedTools).toEqual([
+					"WebFetch",
+					"WebSearch",
+				]);
+			});
+
+			test("accepts full direct spawn config with all fields", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"full-agent": {
+							defaultPrompt: "Default prompt",
+							defaultPromptFile: "prompts/default.md",
+							systemPrompt: "prompts/system.md",
+							systemPromptText: "Inline system prompt",
+							mcpConfig: "settings/mcp.json",
+							settings: "settings/agent.json",
+							model: "opus",
+							maxTurns: 100,
+							allowedTools: ["Read", "Write"],
+							disallowedTools: ["Bash"],
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				const agent = config?.agents?.["full-agent"];
+				expect(agent?.defaultPrompt).toBe("Default prompt");
+				expect(agent?.defaultPromptFile).toBe("prompts/default.md");
+				expect(agent?.systemPrompt).toBe("prompts/system.md");
+				expect(agent?.systemPromptText).toBe("Inline system prompt");
+				expect(agent?.mcpConfig).toBe("settings/mcp.json");
+				expect(agent?.settings).toBe("settings/agent.json");
+				expect(agent?.model).toBe("opus");
+				expect(agent?.maxTurns).toBe(100);
+				expect(agent?.allowedTools).toEqual(["Read", "Write"]);
+				expect(agent?.disallowedTools).toEqual(["Bash"]);
+			});
+
+			// Validation rejection tests
+			test("rejects non-string systemPrompt", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							systemPrompt: 123,
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' systemPrompt must be a string"
+				);
+			});
+
+			test("rejects non-string systemPromptText", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							systemPromptText: ["array", "of", "strings"],
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' systemPromptText must be a string"
+				);
+			});
+
+			test("rejects non-string mcpConfig", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							mcpConfig: { path: "mcp.json" },
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' mcpConfig must be a string"
+				);
+			});
+
+			test("rejects non-string settings", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							settings: true,
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' settings must be a string"
+				);
+			});
+
+			test("rejects non-string model", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							model: 42,
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' model must be a string"
+				);
+			});
+
+			test("rejects invalid model value", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							model: "gpt-4",
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' model must be one of: sonnet, opus, haiku"
+				);
+			});
+
+			test("rejects non-number maxTurns", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							maxTurns: "fifty",
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' maxTurns must be a number"
+				);
+			});
+
+			test("rejects non-positive maxTurns", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							maxTurns: 0,
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' maxTurns must be a positive integer"
+				);
+			});
+
+			test("rejects non-integer maxTurns", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							maxTurns: 10.5,
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' maxTurns must be a positive integer"
+				);
+			});
+
+			test("rejects non-array allowedTools", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							allowedTools: "Read,Write",
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' allowedTools must be an array"
+				);
+			});
+
+			test("rejects non-string elements in allowedTools", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							allowedTools: ["Read", 123, "Write"],
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' allowedTools[1] must be a string"
+				);
+			});
+
+			test("rejects non-array disallowedTools", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							disallowedTools: "Bash",
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' disallowedTools must be an array"
+				);
+			});
+
+			test("rejects non-string elements in disallowedTools", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							disallowedTools: [null, "Bash"],
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' disallowedTools[0] must be a string"
+				);
+			});
 		});
 	});
 
@@ -523,6 +886,91 @@ describe("variable substitution in prompt fields", () => {
 			expect(result.steps[0]?.loop).toBe(true);
 			expect(result.steps[0]?.args).toEqual(["--verbose"]);
 		});
+	});
+});
+
+describe("isDirectSpawnAgent", () => {
+	test("returns true when systemPrompt is set", () => {
+		const agent: AgentConfig = {
+			systemPrompt: "prompts/system.md",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(true);
+	});
+
+	test("returns true when systemPromptText is set", () => {
+		const agent: AgentConfig = {
+			systemPromptText: "You are a helpful assistant.",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(true);
+	});
+
+	test("returns true when both systemPrompt and systemPromptText are set", () => {
+		const agent: AgentConfig = {
+			systemPrompt: "prompts/system.md",
+			systemPromptText: "You are a helpful assistant.",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(true);
+	});
+
+	test("returns false when neither systemPrompt nor systemPromptText is set", () => {
+		const agent: AgentConfig = {
+			defaultPrompt: "Default prompt",
+			model: "sonnet",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(false);
+	});
+
+	test("returns false for empty config", () => {
+		const agent: AgentConfig = {};
+		expect(isDirectSpawnAgent(agent)).toBe(false);
+	});
+
+	test("returns false when only other fields are set", () => {
+		const agent: AgentConfig = {
+			mcpConfig: "settings/mcp.json",
+			settings: "settings/agent.json",
+			model: "opus",
+			maxTurns: 100,
+			allowedTools: ["Read", "Write"],
+			disallowedTools: ["Bash"],
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(false);
+	});
+
+	test("returns true with systemPrompt even with other fields set", () => {
+		const agent: AgentConfig = {
+			systemPrompt: "prompts/system.md",
+			mcpConfig: "settings/mcp.json",
+			settings: "settings/agent.json",
+			model: "opus",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(true);
+	});
+
+	test("returns true with systemPromptText even with other fields set", () => {
+		const agent: AgentConfig = {
+			systemPromptText: "You are a helpful assistant.",
+			mcpConfig: "settings/mcp.json",
+			settings: "settings/agent.json",
+			model: "haiku",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(true);
+	});
+
+	test("handles undefined systemPrompt explicitly", () => {
+		const agent: AgentConfig = {
+			systemPrompt: undefined,
+			defaultPrompt: "Some default",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(false);
+	});
+
+	test("handles undefined systemPromptText explicitly", () => {
+		const agent: AgentConfig = {
+			systemPromptText: undefined,
+			defaultPrompt: "Some default",
+		};
+		expect(isDirectSpawnAgent(agent)).toBe(false);
 	});
 });
 
