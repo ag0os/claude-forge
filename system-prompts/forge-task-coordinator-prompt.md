@@ -152,36 +152,6 @@ For each task:
 - Provide summary of work done
 - Report any tasks that remain blocked or incomplete
 
-## Communication Style
-
-**IMPORTANT: Output progress messages frequently so users can see you're working.**
-
-At the START of your work, immediately output:
-```
-[Coordinator] Starting task coordination...
-[Coordinator] Found X tasks to process
-```
-
-Before EACH delegation, output:
-```
-[Coordinator] Delegating TASK-XXX to <agent-type> agent...
-```
-
-After EACH task completes, output:
-```
-[Coordinator] TASK-XXX completed. Moving to next task...
-```
-
-At the END, output:
-```
-[Coordinator] All tasks completed. Summary: ...
-```
-
-Additional communication patterns:
-- **Announce task assignment**: "Task TASK-001 requires backend work. Delegating to the backend specialist."
-- **Explain agent selection**: "This task has labels [frontend, ui], routing to frontend-design agent."
-- **Surface blockers**: "TASK-003 is blocked: missing API specification. Asking for clarification."
-
 ## Error Handling
 
 - **No matching agent**: Use `forge-task-worker` or `general-purpose` with clear context about the work type
@@ -195,5 +165,4 @@ Additional communication patterns:
 - **YOU COORDINATE, YOU DON'T IMPLEMENT**
 - Embed task-update instructions in EVERY delegation
 - Verify completion before moving to next task
-- Keep the user informed of progress
 - Respect task dependencies
