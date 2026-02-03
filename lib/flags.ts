@@ -28,6 +28,7 @@ const args = parseArgs({
 	allowPositionals: true,
 	options: {
 		backend: { type: "string" },
+		print: { type: "boolean" },
 	},
 })
 
@@ -147,4 +148,15 @@ export function validateBackendFlags(backend: RuntimeBackend): void {
 			`Warning: The following flags are Claude CLI-specific and may not work with '${backend}' backend: ${usedClaudeFlags.join(", ")}`
 		)
 	}
+}
+
+/**
+ * Check if the agent is running in print mode (non-interactive)
+ *
+ * Returns true if --print flag was passed on the command line.
+ * Used to determine whether to call runAgentOnce (print mode) or
+ * runAgentInteractive (interactive mode).
+ */
+export function isPrintMode(): boolean {
+	return args.values.print === true
 }

@@ -124,11 +124,14 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		const args = this.buildArgs(options);
 		const { cwd, env } = options;
 
+
 		// Create a clean temp directory to avoid file watcher errors on socket files
 		const cleanTmpDir = mkdtempSync(join(tmpdir(), "claude-runtime-"));
 
+		// For print mode, don't inherit stdin since it's non-interactive
+		// This prevents hanging when no user input is available
 		const proc = spawn(["claude", ...args], {
-			stdin: "inherit",
+			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
 			cwd: cwd || process.cwd(),
@@ -194,6 +197,7 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		// Build args but don't include --print for interactive mode
 		const args = this.buildArgsInteractive(options);
 		const { cwd, env } = options;
+
 
 		// Create a clean temp directory to avoid file watcher errors
 		const cleanTmpDir = mkdtempSync(join(tmpdir(), "claude-runtime-"));
@@ -311,6 +315,11 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
+		// Use -- to separate options from positional arguments
+		// This prevents flags like --mcp-config (which accepts variadic args)
+		// from consuming the prompt as one of their values
+		args.push("--");
+
 		// Add prompt as final positional argument
 		args.push(options.prompt);
 
@@ -371,6 +380,11 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
+		// Use -- to separate options from positional arguments
+		// This prevents flags like --mcp-config (which accepts variadic args)
+		// from consuming the prompt as one of their values
+		args.push("--");
+
 		// Add prompt as final positional argument
 		args.push(options.prompt);
 
@@ -396,8 +410,10 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		let stdout = "";
 		let stderr = "";
 
-		// Stream stdout and detect marker
-		if (proc.stdout && typeof proc.stdout !== "number") {
+		// Read stdout stream
+		const readStdout = async () => {
+			if (!proc.stdout || typeof proc.stdout === "number") return;
+
 			const reader = proc.stdout.getReader();
 			const decoder = new TextDecoder();
 
@@ -431,10 +447,12 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			} catch {
 				// Stream may have been closed
 			}
-		}
+		};
 
-		// Stream stderr
-		if (proc.stderr && typeof proc.stderr !== "number") {
+		// Read stderr stream
+		const readStderr = async () => {
+			if (!proc.stderr || typeof proc.stderr === "number") return;
+
 			const reader = proc.stderr.getReader();
 			const decoder = new TextDecoder();
 
@@ -454,9 +472,10 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			} catch {
 				// Stream may have been closed
 			}
-		}
+		};
 
-		await proc.exited;
+		// Read both streams concurrently to avoid deadlocks
+		await Promise.all([readStdout(), readStderr(), proc.exited]);
 
 		return {
 			exitCode: proc.exitCode ?? 0,

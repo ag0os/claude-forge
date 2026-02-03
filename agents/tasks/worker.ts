@@ -14,14 +14,44 @@
  * - Report completion or blockers
  *
  * Usage:
- *   bun run agents/forge-task-worker.ts "Implement TASK-001"
- *   bun run agents/forge-task-worker.ts              # interactive mode
+ *   bun run agents/tasks/worker.ts "Implement TASK-001"
+ *   bun run agents/tasks/worker.ts                        # interactive mode
+ *   bun run agents/tasks/worker.ts --print "TASK-001"     # print mode (non-interactive)
+ *   bun run agents/tasks/worker.ts --backend codex-cli    # use alternate backend
+ *
+ * ## Runtime Abstraction Migration Pattern
+ *
+ * This agent uses the runtime abstraction layer (lib/runtime) which enables
+ * backend switching via the --backend flag. The pattern is:
+ *
+ * 1. Import from lib/runtime instead of lib/claude:
+ *    - runAgentOnce() for print mode (non-interactive, captured output)
+ *    - runAgentInteractive() for interactive mode (inherited stdio)
+ *
+ * 2. Import getBackend, validateBackendFlags, isPrintMode from lib/flags:
+ *    - getBackend() resolves --backend flag or FORGE_BACKEND env var
+ *    - validateBackendFlags() warns about incompatible Claude-specific flags
+ *    - isPrintMode() checks if --print flag was passed
+ *
+ * 3. Build RunOptions instead of CLI args:
+ *    - prompt: positional argument
+ *    - systemPrompt: from system-prompts/*.md
+ *    - settings: JSON.stringify(settingsObject)
+ *    - mcpConfig: JSON.stringify(mcpObject)
+ *    - cwd: project root
+ *    - env: additional environment variables
+ *
+ * 4. Call the appropriate runtime function based on mode:
+ *    - isPrintMode() ? runAgentOnce(options) : runAgentInteractive(options)
  */
 
 import {
-	buildClaudeFlags,
+	getBackend,
 	getPositionals,
-	spawnClaudeAndWait,
+	isPrintMode,
+	runAgentInteractive,
+	runAgentOnce,
+	validateBackendFlags,
 } from "../../lib";
 import taskWorkerMcp from "../../settings/forge-task-worker.mcp.json" with {
 	type: "json",
@@ -38,25 +68,39 @@ function resolvePath(relativeFromThisFile: string): string {
 	return url.pathname;
 }
 
-const projectRoot = resolvePath("../");
+async function main() {
+	const projectRoot = resolvePath("../");
 
-// Get any prompt from positional arguments
-const positionals = getPositionals();
-const userPrompt = positionals.join(" ");
+	// Get backend and validate flags
+	const backend = getBackend();
+	validateBackendFlags(backend);
 
-// Build Claude flags
-const flags = buildClaudeFlags({
-	settings: JSON.stringify(taskWorkerSettings),
-	"mcp-config": JSON.stringify(taskWorkerMcp),
-	"append-system-prompt": taskWorkerSystemPrompt,
-});
+	// Get any prompt from positional arguments
+	const positionals = getPositionals();
+	const userPrompt = positionals.join(" ") || "Help me with my task";
 
-// Add the prompt as positional argument if provided
-const args = userPrompt ? [...flags, userPrompt] : [...flags];
+	// Build RunOptions for the runtime abstraction
+	const options = {
+		prompt: userPrompt,
+		systemPrompt: taskWorkerSystemPrompt,
+		settings: JSON.stringify(taskWorkerSettings),
+		mcpConfig: JSON.stringify(taskWorkerMcp),
+		cwd: projectRoot,
+		env: { CLAUDE_PROJECT_DIR: projectRoot },
+		backend,
+	};
 
-const exitCode = await spawnClaudeAndWait({
-	args,
-	env: { CLAUDE_PROJECT_DIR: projectRoot },
-});
+	// Choose execution mode based on --print flag
+	const result = isPrintMode()
+		? await runAgentOnce(options)
+		: await runAgentInteractive(options);
 
-process.exit(exitCode);
+	// In print mode, output the captured response
+	if (isPrintMode() && result.stdout) {
+		process.stdout.write(result.stdout);
+	}
+
+	process.exit(result.exitCode);
+}
+
+await main();
