@@ -4,7 +4,7 @@
  * Loads and validates forge/orch/chains.json configuration file.
  * Uses fallback resolution:
  * 1. Local ./forge/orch/chains.json (project-specific override)
- * 2. util:forge-config chains output (global shared config)
+ * 2. forge config chains output (global shared config)
  * 3. Returns null if neither found
  *
  * Handles variable substitution in args using ${VAR} syntax.
@@ -113,7 +113,7 @@ const CONFIG_PATH = "forge/orch/chains.json";
  *
  * Resolution order:
  * 1. Local ./forge/orch/chains.json (project-specific override)
- * 2. forge-config chains output (global shared config)
+ * 2. forge config chains output (global shared config)
  * 3. Returns null if neither found
  *
  * @param cwd - Working directory to load config relative to
@@ -159,10 +159,10 @@ export async function loadConfig(
 		return validateAndTransformConfig(rawConfig, configPath);
 	}
 
-	// 2. Try forge-config chains as fallback
+	// 2. Try forge config chains as fallback
 	if (verbose) {
 		console.log(
-			"[orchestra] Local config not found, trying util:forge-config chains..."
+			"[orchestra] Local config not found, trying forge config chains..."
 		);
 	}
 
@@ -179,25 +179,25 @@ export async function loadConfig(
 }
 
 /**
- * Load configuration from util:forge-config chains command.
+ * Load configuration from forge config chains command.
  *
  * @param verbose - Whether to log verbose output
- * @returns Parsed config or null if util:forge-config is not available or fails
+ * @returns Parsed config or null if forge is not available or fails
  */
 async function loadFromForgeConfig(
 	verbose: boolean
 ): Promise<OrchestraConfig | null> {
 	try {
-		// Use Bun shell to execute util:forge-config chains
+		// Use Bun shell to execute forge config chains
 		// nothrow prevents exceptions on non-zero exit
-		const result = await $`util:forge-config chains`.nothrow();
+		const result = await $`forge config chains`.nothrow();
 
 		// Check if command was successful
 		if (result.exitCode !== 0) {
 			if (verbose) {
 				const stderr = result.stderr.toString().trim();
 				console.log(
-					`[orchestra] util:forge-config chains failed with exit code ${result.exitCode}`
+					`[orchestra] forge config chains failed with exit code ${result.exitCode}`
 				);
 				if (stderr) {
 					console.log(`[orchestra] stderr: ${stderr}`);
@@ -210,7 +210,7 @@ async function loadFromForgeConfig(
 		const output = result.stdout.toString().trim();
 		if (!output) {
 			if (verbose) {
-				console.log("[orchestra] util:forge-config chains returned empty output");
+				console.log("[orchestra] forge config chains returned empty output");
 			}
 			return null;
 		}
@@ -222,23 +222,23 @@ async function loadFromForgeConfig(
 		} catch (error) {
 			if (verbose) {
 				console.log(
-					`[orchestra] util:forge-config chains returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+					`[orchestra] forge config chains returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`
 				);
 			}
 			return null;
 		}
 
 		if (verbose) {
-			console.log("[orchestra] Loaded config from util:forge-config chains");
+			console.log("[orchestra] Loaded config from forge config chains");
 		}
 
 		// Validate and transform the config
-		return validateAndTransformConfig(rawConfig, "util:forge-config chains");
+		return validateAndTransformConfig(rawConfig, "forge config chains");
 	} catch (error) {
-		// This catches errors like "command not found" when util:forge-config is not in PATH
+		// This catches errors like "command not found" when forge is not in PATH
 		if (verbose) {
 			console.log(
-				`[orchestra] util:forge-config not available: ${error instanceof Error ? error.message : String(error)}`
+				`[orchestra] forge not available: ${error instanceof Error ? error.message : String(error)}`
 			);
 			console.log(`[orchestra] PATH: ${process.env.PATH}`);
 		}

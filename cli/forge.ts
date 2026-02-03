@@ -14,20 +14,18 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 function getForgeRoot(): string {
-	// Try to find forge root by looking for package.json
-	// Start from current working directory and walk up
-	let dir = process.cwd();
-	while (dir !== "/") {
-		if (existsSync(resolve(dir, "package.json"))) {
-			const pkg = JSON.parse(readFileSync(resolve(dir, "package.json"), "utf-8"));
-			if (pkg.name === "claude-forge") {
-				return dir;
-			}
-		}
-		dir = dirname(dir);
+	// Check if running as compiled binary by looking for bun's virtual filesystem
+	const isCompiled = import.meta.dir.startsWith("/$bunfs");
+
+	if (isCompiled) {
+		// Compiled binary: process.execPath is /path/to/claude-forge/bin/forge
+		// Go up one level from bin/ to get forge root
+		return resolve(dirname(process.execPath), "..");
 	}
-	// Fallback: assume we're in the forge root
-	return process.cwd();
+
+	// Running via bun: import.meta.dir is /path/to/claude-forge/cli
+	// Go up one level to get forge root
+	return resolve(import.meta.dir, "..");
 }
 
 function getBinDir(): string {
