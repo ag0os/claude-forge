@@ -18,6 +18,7 @@ import { spawn, type Subprocess } from "bun";
 import { $ } from "bun";
 
 import { COMPLETION_MARKER } from "../orchestra/constants";
+import { debugCommand, debugSpawn } from "./debug";
 import type {
 	AgentRuntime,
 	RunOptions,
@@ -60,14 +61,23 @@ export class CodexCliRuntime implements AgentRuntime {
 	async isAvailable(): Promise<boolean> {
 		// Check for CODEX_PATH environment variable first
 		if (process.env.CODEX_PATH) {
+			debugSpawn("Codex CLI found via CODEX_PATH", {
+				path: process.env.CODEX_PATH,
+			});
 			return true;
 		}
 
 		try {
 			const cmd = process.platform === "win32" ? "where" : "which";
 			const result = (await $`${cmd} codex`.quiet().text()).trim();
-			return result.length > 0;
+			const available = result.length > 0;
+			debugSpawn("Codex CLI availability check", {
+				available,
+				path: available ? result : undefined,
+			});
+			return available;
 		} catch {
+			debugSpawn("Codex CLI not found in PATH");
 			return false;
 		}
 	}
@@ -134,6 +144,13 @@ export class CodexCliRuntime implements AgentRuntime {
 		const args = this.buildExecArgs(options, fullPrompt);
 		const { cwd, env } = options;
 
+		// Log the constructed command for debugging
+		debugCommand("codex", args, { cwd, env });
+
+		debugSpawn("Spawning Codex CLI process (exec mode)", {
+			cwd: cwd || process.cwd(),
+		});
+
 		const proc = spawn(["codex", ...args], {
 			stdin: "inherit",
 			stdout: "pipe",
@@ -195,6 +212,13 @@ export class CodexCliRuntime implements AgentRuntime {
 		const fullPrompt = this.buildPrompt(options as RunOptions);
 		const args = this.buildInteractiveArgs(options, fullPrompt);
 		const { cwd, env } = options;
+
+		// Log the constructed command for debugging
+		debugCommand("codex", args, { cwd, env });
+
+		debugSpawn("Spawning Codex CLI process (interactive mode)", {
+			cwd: cwd || process.cwd(),
+		});
 
 		const proc = spawn(["codex", ...args], {
 			stdin: "inherit",

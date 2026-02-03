@@ -16,6 +16,7 @@ import { $ } from "bun";
 
 import { getForgeRoot } from "../forge-root";
 import { COMPLETION_MARKER } from "../orchestra/constants";
+import { debugCommand, debugSpawn } from "./debug";
 import type {
 	AgentRuntime,
 	RunOptions,
@@ -58,14 +59,23 @@ export class ClaudeCliRuntime implements AgentRuntime {
 	async isAvailable(): Promise<boolean> {
 		// Check for CLAUDE_PATH environment variable first
 		if (process.env.CLAUDE_PATH) {
+			debugSpawn("Claude CLI found via CLAUDE_PATH", {
+				path: process.env.CLAUDE_PATH,
+			});
 			return true;
 		}
 
 		try {
 			const cmd = process.platform === "win32" ? "where" : "which";
 			const result = (await $`${cmd} claude`.quiet().text()).trim();
-			return result.length > 0;
+			const available = result.length > 0;
+			debugSpawn("Claude CLI availability check", {
+				available,
+				path: available ? result : undefined,
+			});
+			return available;
 		} catch {
+			debugSpawn("Claude CLI not found in PATH");
 			return false;
 		}
 	}
@@ -124,9 +134,16 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		const args = this.buildArgs(options);
 		const { cwd, env } = options;
 
+		// Log the constructed command for debugging
+		debugCommand("claude", args, { cwd, env });
 
 		// Create a clean temp directory to avoid file watcher errors on socket files
 		const cleanTmpDir = mkdtempSync(join(tmpdir(), "claude-runtime-"));
+
+		debugSpawn("Spawning Claude CLI process (print mode)", {
+			cwd: cwd || process.cwd(),
+			tmpDir: cleanTmpDir,
+		});
 
 		// For print mode, don't inherit stdin since it's non-interactive
 		// This prevents hanging when no user input is available
@@ -198,9 +215,16 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		const args = this.buildArgsInteractive(options);
 		const { cwd, env } = options;
 
+		// Log the constructed command for debugging
+		debugCommand("claude", args, { cwd, env });
 
 		// Create a clean temp directory to avoid file watcher errors
 		const cleanTmpDir = mkdtempSync(join(tmpdir(), "claude-runtime-"));
+
+		debugSpawn("Spawning Claude CLI process (interactive mode)", {
+			cwd: cwd || process.cwd(),
+			tmpDir: cleanTmpDir,
+		});
 
 		const proc = spawn(["claude", ...args], {
 			stdin: "inherit",
