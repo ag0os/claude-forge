@@ -334,6 +334,7 @@ async function runClaudeCommand(prompt: string): Promise<string> {
 	delete claudeFlags.recipe;
 	delete claudeFlags.verbose;
 	delete claudeFlags.help;
+	delete claudeFlags.backend;
 
 	const flags = buildClaudeFlags(
 		{
@@ -341,7 +342,7 @@ async function runClaudeCommand(prompt: string): Promise<string> {
 			"output-format": "json",
 			verbose: true,
 		},
-		claudeFlags,
+		claudeFlags as import("../../lib/claude-flags.types").ClaudeFlags,
 	);
 
 	const proc = spawn(["claude", ...flags, prompt], {
