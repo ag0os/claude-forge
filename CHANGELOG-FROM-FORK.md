@@ -36,14 +36,14 @@ A complete task management system that combines a CLI tool with Claude sub-agent
 - Sequential task ID generation
 - Label-based task organization
 - Acceptance criteria tracking
-- Integration with forkhestra for orchestration loops
+- Integration with orchestra for orchestration loops
 
-### 2. Forkhestra: Agent Orchestration Library
+### 2. Orchestra: Agent Orchestration Library
 
 A DSL and runtime for orchestrating Claude agent chains with iteration control.
 
 **Components:**
-- `lib/forkhestra/` - Core orchestration library
+- `lib/orchestra/` - Core orchestration library
   - DSL parser for chain definitions
   - Core runner for agent execution
   - Chain executor for sequential steps
@@ -59,7 +59,7 @@ a:3 -> b:10       # Chain with iteration limits
 
 **Features:**
 - Pipeline mode: Run agents once each in sequence
-- Loop mode: Run agents until `FORKHESTRA_COMPLETE` marker or max iterations
+- Loop mode: Run agents until `ORCHESTRA_COMPLETE` marker or max iterations
 - Configuration via `forge/chains.json`
 - Prompt support: CLI flags, step-level, chain-level, agent defaults
 - Variable substitution in prompts
@@ -125,7 +125,7 @@ Restructured agents from flat directory to functional namespaces:
 
 - Comprehensive `CLAUDE.md` with agent namespacing documentation
 - `docs/FORGE-TASKS.md` - Forge-tasks documentation
-- `docs/FORKHESTRA.md` - Forkhestra orchestration documentation
+- `docs/ORCHESTRA.md` - Orchestra orchestration documentation
 - `docs/HOOKS.md` - Type-safe hooks documentation
 
 ### 6. Infrastructure Improvements

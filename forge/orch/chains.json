@@ -1,0 +1,30 @@
+{
+  "agents": {
+    "planner": {
+      "systemPrompt": "forge/orch/prompts/planner.md",
+      "model": "opus",
+      "allowedTools": ["Read", "Grep", "Glob", "Bash"]
+    },
+    "builder": {
+      "systemPrompt": "forge/orch/prompts/builder.md",
+      "model": "opus"
+    }
+  },
+  "chains": {
+    "build-all": {
+      "description": "Orchestra planning and building workflow. Planner creates implementation tasks, builder executes them.",
+      "steps": [
+        { "agent": "planner", "iterations": 3 },
+        { "agent": "builder", "iterations": 20 }
+      ]
+    },
+    "build": {
+      "description": "Run orchestra builder to implement existing tasks.",
+      "steps": [{ "agent": "builder", "iterations": 30 }]
+    },
+    "plan": {
+      "description": "Run orchestra planner to create implementation tasks from requirements.",
+      "steps": [{ "agent": "planner", "iterations": 5 }]
+    }
+  }
+}

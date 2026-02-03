@@ -1,5 +1,5 @@
 /**
- * DSL parser for forkhestra chain definitions
+ * DSL parser for orchestra chain definitions
  *
  * Parses DSL strings into structured ChainStep arrays.
  * Supports both pipeline mode (no iterations) and loop mode (with iterations).
@@ -22,7 +22,7 @@ export interface ChainStep {
 	agent: string;
 	/** Maximum number of iterations (1 if no looping) */
 	iterations: number;
-	/** If true, loop until FORKHESTRA_COMPLETE marker or max iterations */
+	/** If true, loop until ORCHESTRA_COMPLETE marker or max iterations */
 	loop: boolean;
 	/** Optional arguments to pass to the agent */
 	args?: string[];

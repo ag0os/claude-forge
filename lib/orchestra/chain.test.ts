@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra chain executor
+ * Tests for orchestra chain executor
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
@@ -10,7 +10,7 @@ import { COMPLETION_MARKER } from "./runner";
 import type { ChainStep } from "./config";
 
 // Create temporary test scripts
-const tmpDir = "/tmp/forkhestra-chain-test";
+const tmpDir = "/tmp/orchestra-chain-test";
 const promptsDir = join(tmpDir, "prompts");
 const simpleAgentPath = join(tmpDir, "simple-agent");
 const completingAgentPath = join(tmpDir, "completing-agent");

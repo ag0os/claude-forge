@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra runner
+ * Tests for orchestra runner
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
@@ -9,7 +9,7 @@ import { run, COMPLETION_MARKER, type RunResult } from "./runner";
 import type { AgentConfig } from "./config";
 
 // Create temporary test scripts
-const tmpDir = "/tmp/forkhestra-test";
+const tmpDir = "/tmp/orchestra-test";
 const testAgentPath = join(tmpDir, "test-agent");
 const completingAgentPath = join(tmpDir, "completing-agent");
 const failingAgentPath = join(tmpDir, "failing-agent");
@@ -208,7 +208,7 @@ describe("runner", () => {
 
 	describe("dispatch logic (runDirect vs runBinary)", () => {
 		// Temporary directory for direct spawn tests
-		const directSpawnTmpDir = "/tmp/forkhestra-direct-spawn-test";
+		const directSpawnTmpDir = "/tmp/orchestra-direct-spawn-test";
 
 		beforeAll(() => {
 			mkdirSync(join(directSpawnTmpDir, "prompts"), { recursive: true });

@@ -18,7 +18,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun check` - Run Biome checks without fixes
 - `bun lint:fix` - Apply unsafe fixes with Biome
 - `bun run compile:forge-tasks` - Compile forge-tasks CLI to binary
-- `bun run compile:forkhestra` - Compile forkhestra CLI to binary
+- `bun run compile:orchestra` - Compile orchestra CLI to binary
 - `bun test:forge-tasks` - Run forge-tasks tests
 
 ## Code Architecture
@@ -34,7 +34,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bin/` - Compiled binaries (generated)
 - `docs/` - Documentation for framework features
 - `forge-tasks/` - Hybrid task management system (CLI + sub-agents). See [docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)
-- `forkhestra/` - Agent orchestration library for chaining and looping agents
+- `lib/orchestra/` - Agent orchestration library for chaining and looping agents
 
 ### Agent Namespacing
 
@@ -49,38 +49,38 @@ Agents are namespaced via subdirectories. The directory structure determines the
 
 **Private agents**: Create `agents/local/` for personal agents that won't be committed (gitignored).
 
-**Usage with forkhestra**:
+**Usage with orchestra**:
 ```bash
-forkhestra "tasks:manager -> tasks:coordinator:10"
-forkhestra "plan:riff -> build:builder"
+orchestra "tasks:manager -> tasks:coordinator:10"
+orchestra "plan:riff -> build:builder"
 ```
 
-## Forkhestra - Agent Orchestration
+## Orchestra - Agent Orchestration
 
-Forkhestra provides two modes for orchestrating agents:
+Orchestra provides two modes for orchestrating agents:
 - **Pipeline mode**: Run agents once each, in sequence
-- **Loop mode**: Run agents repeatedly until they output `FORKHESTRA_COMPLETE` or hit max iterations
+- **Loop mode**: Run agents repeatedly until they output `ORCHESTRA_COMPLETE` or hit max iterations
 
 ### CLI Usage
 
 ```bash
 # Pipeline mode - run agents once each
-forkhestra "tasks:manager -> tasks:coordinator"
+orchestra "tasks:manager -> tasks:coordinator"
 
 # Loop mode - single agent with max iterations
-forkhestra tasks:coordinator:10
+orchestra tasks:coordinator:10
 
 # Chain mode with iterations
-forkhestra "tasks:manager:3 -> tasks:coordinator:10"
+orchestra "tasks:manager:3 -> tasks:coordinator:10"
 
 # Config mode - named chains
-forkhestra --chain plan-and-build
-forkhestra --chain single-task TASK_ID=TASK-001
+orchestra --chain plan-and-build
+orchestra --chain single-task TASK_ID=TASK-001
 
 # With prompts - pass instructions to agents
-forkhestra tasks:coordinator:10 -p "Focus on TASK-001"
-forkhestra --chain build --prompt "Implement the login feature"
-forkhestra plan:planner:5 --prompt-file prompts/instructions.md
+orchestra tasks:coordinator:10 -p "Focus on TASK-001"
+orchestra --chain build --prompt "Implement the login feature"
+orchestra plan:planner:5 --prompt-file prompts/instructions.md
 
 # Options
 --cwd <path>           Working directory
@@ -97,7 +97,7 @@ forkhestra plan:planner:5 --prompt-file prompts/instructions.md
 - `a -> b` - Pipeline: run a, then b (both once)
 - `a:3 -> b:10` - Chain: a loops up to 3, then b loops up to 10
 
-### Configuration (forge/chains.json)
+### Configuration (forge/orch/chains.json)
 
 ```json
 {
@@ -136,26 +136,26 @@ When multiple prompt sources exist, the highest priority wins:
 | 3 | Chain `prompt` / `promptFile` | All steps in chain |
 | 4 | Agent `defaultPrompt` / `defaultPromptFile` | Fallback for this agent |
 
-At each level, inline `prompt` beats `promptFile`. See [docs/FORKHESTRA.md](docs/FORKHESTRA.md) for full documentation.
+At each level, inline `prompt` beats `promptFile`. See [docs/ORCHESTRA.md](docs/ORCHESTRA.md) for full documentation.
 
 ### Completion Marker Contract
 
-Agents participating in forkhestra loops must output `FORKHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
+Agents participating in orchestra loops must output `ORCHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
 
-### Forkhestra Native Agents (fk: namespace)
+### Direct Spawn Agents
 
-The `fk:` namespace contains agents defined entirely in `forge/chains.json` via `systemPrompt` instead of compiled binaries. These "direct spawn" agents are spawned by forkhestra directly using `claude` CLI with the specified system prompt.
+Direct spawn agents are defined entirely in `forge/orch/chains.json` via `systemPrompt` instead of compiled binaries. These agents are spawned by orchestra directly using `claude` CLI with the specified system prompt.
 
-**Built-in fk: agents:**
-- `fk:planner` - Creates tasks from `ralph/` requirements (read-only tools)
-- `fk:builder` - Implements one task per iteration (full tool access)
+**Built-in direct spawn agents:**
+- `planner` - Creates tasks from `forge/orch/specs/` requirements (read-only tools)
+- `builder` - Implements one task per iteration (full tool access)
 
 **Example config:**
 ```json
 {
   "agents": {
-    "fk:planner": {
-      "systemPrompt": "system-prompts/fk/planner.md",
+    "planner": {
+      "systemPrompt": "forge/orch/prompts/planner.md",
       "model": "sonnet",
       "allowedTools": ["Read", "Grep", "Glob", "Bash"]
     }
@@ -163,29 +163,29 @@ The `fk:` namespace contains agents defined entirely in `forge/chains.json` via 
 }
 ```
 
-### ralph/ Directory Convention
+### forge/orch/specs/ Directory Convention
 
-The `ralph/` directory holds project requirements for forkhestra workflows:
+The `forge/orch/specs/` directory holds project requirements for orchestra workflows:
 
 | File | Purpose |
 |------|---------|
-| `ralph/PLAN.md` | High-level implementation plan and goals |
-| `ralph/SPECS.md` | Detailed specifications and requirements |
-| `ralph/AGENTS.md` | Coding conventions and project-specific context |
+| `forge/orch/specs/PLAN.md` | High-level implementation plan and goals |
+| `forge/orch/specs/SPECS.md` | Detailed specifications and requirements |
+| `forge/orch/specs/AGENTS.md` | Coding conventions and project-specific context |
 
-**Usage with ralph chain:**
+**Usage with build-all chain:**
 ```bash
 # Full workflow: plan tasks, then build
-forkhestra --chain ralph
+orchestra --chain build-all
 
 # Plan only (create tasks from requirements)
-forkhestra --chain plan
+orchestra --chain plan
 
 # Build only (implement existing tasks)
-forkhestra --chain build
+orchestra --chain build
 ```
 
-**State persistence:** Agents maintain state across iterations through `ralph/` files, `forge/tasks/` task files, and git commits. Each iteration reads current state and makes incremental progress.
+**State persistence:** Agents maintain state across iterations through `forge/orch/specs/` files, `forge/tasks/` task files, and git commits. Each iteration reads current state and makes incremental progress.
 
 ### Key Libraries
 - `@anthropic-ai/claude-code` - Official Claude Code SDK

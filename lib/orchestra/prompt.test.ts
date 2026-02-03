@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra prompt resolution utilities
+ * Tests for orchestra prompt resolution utilities
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
@@ -9,7 +9,7 @@ import { readPromptFile, resolvePrompt, type PromptSources } from "./prompt";
 import type { ChainStep, ChainConfig, AgentConfig } from "./config";
 
 // Create temporary test directory
-const tmpDir = "/tmp/forkhestra-prompt-test";
+const tmpDir = "/tmp/orchestra-prompt-test";
 
 beforeAll(() => {
 	mkdirSync(join(tmpDir, "prompts"), { recursive: true });

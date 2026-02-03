@@ -1,5 +1,5 @@
 /**
- * Integration tests for forkhestra direct spawn functionality
+ * Integration tests for orchestra direct spawn functionality
  *
  * These tests verify the full direct spawn flow works end-to-end,
  * including command construction, max-turns handling, and error cases.
@@ -19,8 +19,8 @@ import { loadAgentSystemPrompt, composeSystemPrompt, MODE_AWARENESS_PREFIX } fro
 import { COMPLETION_MARKER } from "./constants";
 
 // Test directory setup
-const tmpDir = "/tmp/forkhestra-integration-test";
-const forgeDir = join(tmpDir, "forge");
+const tmpDir = "/tmp/orchestra-integration-test";
+const forgeDir = join(tmpDir, "forge/orch");
 const promptsDir = join(tmpDir, "system-prompts/fk");
 
 beforeAll(() => {
@@ -73,7 +73,7 @@ beforeAll(() => {
 		},
 		chains: {
 			"test-ralph": {
-				description: "Test forkhestra planning and building workflow.",
+				description: "Test orchestra planning and building workflow.",
 				steps: [
 					{ agent: "test:planner", iterations: 3 },
 					{ agent: "test:builder", iterations: 20 },
@@ -220,7 +220,7 @@ describe("integration: system prompt composition", () => {
 		const composed = composeSystemPrompt(agentPrompt);
 
 		expect(composed).toContain(COMPLETION_MARKER);
-		expect(composed).toContain("FORKHESTRA_COMPLETE");
+		expect(composed).toContain("ORCHESTRA_COMPLETE");
 		expect(composed).toContain("HEADLESS mode");
 		expect(composed).toContain("CANNOT ask the user questions");
 	});
@@ -461,21 +461,21 @@ describe("integration: claude command construction", () => {
 	});
 });
 
-describe("integration: dry-run with forkhestra CLI", () => {
+describe("integration: dry-run with orchestra CLI", () => {
 	/**
-	 * Helper to run forkhestra CLI and capture output
+	 * Helper to run orchestra CLI and capture output
 	 */
-	async function runForkhestra(
+	async function runOrchestra(
 		args: string[],
 		cwd: string
 	): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-		// Path to forkhestra CLI
-		const forkhestraPath = join(
+		// Path to orchestra CLI
+		const orchestraPath = join(
 			import.meta.dir,
-			"../../agents/orch/forkhestra.ts"
+			"../../cli/orchestra.ts"
 		);
 
-		const proc = spawn(["bun", "run", forkhestraPath, ...args], {
+		const proc = spawn(["bun", "run", orchestraPath, ...args], {
 			cwd,
 			stdout: "pipe",
 			stderr: "pipe",
@@ -493,8 +493,8 @@ describe("integration: dry-run with forkhestra CLI", () => {
 		};
 	}
 
-	test("forkhestra --chain test-ralph --dry-run shows chain steps", async () => {
-		const result = await runForkhestra(
+	test("orchestra --chain test-ralph --dry-run shows chain steps", async () => {
+		const result = await runOrchestra(
 			["--chain", "test-ralph", "--dry-run"],
 			tmpDir
 		);
@@ -507,8 +507,8 @@ describe("integration: dry-run with forkhestra CLI", () => {
 		expect(result.stdout).toContain("loop up to 20 iterations");
 	});
 
-	test("forkhestra --chain test-inline --dry-run works with inline prompts", async () => {
-		const result = await runForkhestra(
+	test("orchestra --chain test-inline --dry-run works with inline prompts", async () => {
+		const result = await runOrchestra(
 			["--chain", "test-inline", "--dry-run"],
 			tmpDir
 		);
@@ -519,8 +519,8 @@ describe("integration: dry-run with forkhestra CLI", () => {
 		expect(result.stdout).toContain("loop up to 5 iterations");
 	});
 
-	test("forkhestra --dry-run with prompt option shows resolved prompt", async () => {
-		const result = await runForkhestra(
+	test("orchestra --dry-run with prompt option shows resolved prompt", async () => {
+		const result = await runOrchestra(
 			["--chain", "test-ralph", "--dry-run", "--prompt", "Build the login feature"],
 			tmpDir
 		);
@@ -530,18 +530,18 @@ describe("integration: dry-run with forkhestra CLI", () => {
 		expect(result.stdout).toContain("Build the login feature");
 	});
 
-	test("forkhestra --help shows usage information", async () => {
-		const result = await runForkhestra(["--help"], tmpDir);
+	test("orchestra --help shows usage information", async () => {
+		const result = await runOrchestra(["--help"], tmpDir);
 
 		expect(result.exitCode).toBe(0);
-		expect(result.stdout).toContain("forkhestra");
+		expect(result.stdout).toContain("orchestra");
 		expect(result.stdout).toContain("--dry-run");
 		expect(result.stdout).toContain("--chain");
 		expect(result.stdout).toContain("--prompt");
 	});
 
-	test("forkhestra reports error for missing chain", async () => {
-		const result = await runForkhestra(
+	test("orchestra reports error for missing chain", async () => {
+		const result = await runOrchestra(
 			["--chain", "nonexistent-chain", "--dry-run"],
 			tmpDir
 		);

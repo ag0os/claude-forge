@@ -1,5 +1,5 @@
 /**
- * Tests for forkhestra config loader and schema validation
+ * Tests for orchestra config loader and schema validation
  */
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
@@ -17,10 +17,10 @@ import {
 } from "./config";
 
 // Create temporary test directory
-const tmpDir = "/tmp/forkhestra-config-test";
+const tmpDir = "/tmp/orchestra-config-test";
 
 beforeAll(() => {
-	mkdirSync(join(tmpDir, "forge"), { recursive: true });
+	mkdirSync(join(tmpDir, "forge/orch"), { recursive: true });
 });
 
 afterAll(() => {
@@ -29,7 +29,7 @@ afterAll(() => {
 
 function writeConfig(config: unknown) {
 	writeFileSync(
-		join(tmpDir, "forge/chains.json"),
+		join(tmpDir, "forge/orch/chains.json"),
 		JSON.stringify(config, null, 2)
 	);
 }
@@ -491,7 +491,7 @@ describe("config schema validation", () => {
 		});
 	});
 
-	describe("ForkhestraConfig agents section", () => {
+	describe("OrchestraConfig agents section", () => {
 		test("config without agents section is valid", async () => {
 			writeConfig({
 				chains: {
@@ -975,7 +975,7 @@ describe("isDirectSpawnAgent", () => {
 });
 
 describe("config resolution fallback", () => {
-	const emptyDir = "/tmp/forkhestra-config-test-empty";
+	const emptyDir = "/tmp/orchestra-config-test-empty";
 
 	beforeAll(() => {
 		mkdirSync(emptyDir, { recursive: true });
@@ -986,7 +986,7 @@ describe("config resolution fallback", () => {
 	});
 
 	test("returns null when no local config and forge-config not available", async () => {
-		// emptyDir has no forge/chains.json and forge-config is not in PATH during tests
+		// emptyDir has no forge/orch/chains.json and forge-config is not in PATH during tests
 		const config = await loadConfig(emptyDir);
 		expect(config).toBeNull();
 	});

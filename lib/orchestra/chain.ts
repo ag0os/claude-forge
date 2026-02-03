@@ -1,5 +1,5 @@
 /**
- * Chain executor for forkhestra - sequential step execution
+ * Chain executor for orchestra - sequential step execution
  *
  * Executes a sequence of ChainSteps, running each agent through the runner.
  * Handles step-by-step execution with proper failure handling.
@@ -95,7 +95,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 	const handleSignal = () => {
 		signalReceived = true;
 		if (verbose) {
-			console.log("\n[forkhestra] Signal received, stopping chain...");
+			console.log("\n[orchestra] Signal received, stopping chain...");
 		}
 	};
 
@@ -130,7 +130,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 
 			if (verbose) {
 				console.log(
-					`\n[forkhestra] Step ${i + 1}/${steps.length}: ${step.agent}${step.loop ? `:${step.iterations}` : ""}`
+					`\n[orchestra] Step ${i + 1}/${steps.length}: ${step.agent}${step.loop ? `:${step.iterations}` : ""}`
 				);
 			}
 
@@ -151,7 +151,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 
 			if (verbose && resolvedPrompt) {
 				console.log(
-					`[forkhestra] Using prompt for ${step.agent}: ${resolvedPrompt.substring(0, 50)}${resolvedPrompt.length > 50 ? "..." : ""}`
+					`[orchestra] Using prompt for ${step.agent}: ${resolvedPrompt.substring(0, 50)}${resolvedPrompt.length > 50 ? "..." : ""}`
 				);
 			}
 
@@ -191,7 +191,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 			if (!result.complete) {
 				if (verbose) {
 					console.log(
-						`[forkhestra] Step ${i + 1} did not complete (reason: ${result.reason})`
+						`[orchestra] Step ${i + 1} did not complete (reason: ${result.reason})`
 					);
 				}
 
@@ -205,7 +205,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 
 			if (verbose) {
 				console.log(
-					`[forkhestra] Step ${i + 1} completed (reason: ${result.reason})`
+					`[orchestra] Step ${i + 1} completed (reason: ${result.reason})`
 				);
 			}
 		}
@@ -221,7 +221,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 
 		if (verbose) {
 			console.error(
-				`[forkhestra] Chain error: ${error instanceof Error ? error.message : String(error)}`
+				`[orchestra] Chain error: ${error instanceof Error ? error.message : String(error)}`
 			);
 		}
 

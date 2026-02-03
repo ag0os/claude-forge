@@ -7,7 +7,9 @@
   "scripts": {
     "compile": "bun scripts/compile.ts",
     "compile:forge-tasks": "bun build forge-tasks/cli/index.ts --compile --outfile bin/forge-tasks",
-    "compile:forkhestra": "bun compile agents/forkhestra.ts",
+    "compile:orchestra": "bun build cli/orchestra.ts --compile --outfile bin/orchestra",
+    "compile:parallel": "bun build cli/parallel.ts --compile --outfile bin/parallel",
+    "compile:forge": "bun build cli/forge.ts --compile --outfile bin/forge",
     "watch": "bun scripts/watch-agents.ts",
     "lint": "biome check --write .",
     "format": "biome format --write .",

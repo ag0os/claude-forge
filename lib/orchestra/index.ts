@@ -1,7 +1,7 @@
 /**
- * Forkhestra - Agent orchestration for claude-forge
+ * Orchestra - Agent orchestration for claude-forge
  *
- * Run agents in loops (Ralph-style) or chains, with shared context via forge-tasks.
+ * Run agents in loops or chains, with shared context via forge-tasks.
  */
 
 // From runner.ts
@@ -21,7 +21,7 @@ export {
 	getChain,
 	substituteVars,
 	type ChainConfig,
-	type ForkhestraConfig,
+	type OrchestraConfig,
 } from "./config";
 
 // From chain.ts
