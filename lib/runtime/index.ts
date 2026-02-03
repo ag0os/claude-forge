@@ -402,6 +402,9 @@ export function detectCompletionMarker(text: string): boolean {
 // Export Claude CLI runtime for direct use
 export { ClaudeCliRuntime, createClaudeCliRuntime } from "./claude-cli";
 
+// Export Codex CLI runtime for direct use
+export { CodexCliRuntime, createCodexCliRuntime } from "./codex-cli";
+
 // ============================================================================
 // Auto-registration
 // ============================================================================
@@ -409,3 +412,7 @@ export { ClaudeCliRuntime, createClaudeCliRuntime } from "./claude-cli";
 // Import and register the Claude CLI runtime
 import { createClaudeCliRuntime } from "./claude-cli";
 registerRuntime("claude-cli", createClaudeCliRuntime);
+
+// Import and register the Codex CLI runtime
+import { createCodexCliRuntime } from "./codex-cli";
+registerRuntime("codex-cli", createCodexCliRuntime);
