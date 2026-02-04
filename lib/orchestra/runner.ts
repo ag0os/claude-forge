@@ -313,36 +313,56 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 	// Loop mode: iterate until marker or max iterations
 	let iterations = 0;
 	let lastExitCode = 0;
+	let signalReceived = false;
 
-	while (iterations < maxIterations) {
-		iterations++;
+	const handleSignal = (_signal: NodeJS.Signals) => {
+		signalReceived = true;
+	};
 
-		if (verbose) {
-			console.log(
-				`[orchestra] Iteration ${iterations}/${maxIterations}`,
-			);
-		}
+	const sigintHandler = () => handleSignal("SIGINT");
+	const sigtermHandler = () => handleSignal("SIGTERM");
 
-		// Use streaming to detect the completion marker
-		const result = await runtime.runStreaming(
-			runtimeOptions,
-			{
-				onStdout: (data) => process.stdout.write(data),
-				onStderr: (data) => process.stderr.write(data),
+	process.on("SIGINT", sigintHandler);
+	process.on("SIGTERM", sigtermHandler);
+
+	const cleanup = () => {
+		process.removeListener("SIGINT", sigintHandler);
+		process.removeListener("SIGTERM", sigtermHandler);
+	};
+
+	try {
+		while (iterations < maxIterations && !signalReceived) {
+			iterations++;
+
+			if (verbose) {
+				console.log(
+					`[orchestra] Iteration ${iterations}/${maxIterations}`,
+				);
 			}
-		);
 
-		lastExitCode = result.exitCode;
+			// Use streaming to detect the completion marker
+			const result = await runtime.runStreaming(
+				runtimeOptions,
+				{
+					onStdout: (data) => process.stdout.write(data),
+					onStderr: (data) => process.stderr.write(data),
+				}
+			);
 
-		// Check if completion marker was detected
-		if (result.completionMarkerFound) {
-			return {
-				complete: true,
-				iterations,
-				exitCode: lastExitCode,
-				reason: "marker",
-			};
+			lastExitCode = result.exitCode;
+
+			// Check if completion marker was detected
+			if (result.completionMarkerFound) {
+				return {
+					complete: true,
+					iterations,
+					exitCode: lastExitCode,
+					reason: "marker",
+				};
+			}
 		}
+	} finally {
+		cleanup();
 	}
 
 	// Max iterations reached without completion
@@ -350,7 +370,7 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 		complete: false,
 		iterations,
 		exitCode: lastExitCode,
-		reason: "max_iterations",
+		reason: signalReceived ? "error" : "max_iterations",
 	};
 }
 

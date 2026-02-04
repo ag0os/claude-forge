@@ -405,8 +405,10 @@ export class CodexCliRuntime implements AgentRuntime {
 		let stdout = "";
 		let stderr = "";
 
-		// Stream stdout and detect marker
-		if (proc.stdout && typeof proc.stdout !== "number") {
+		// Read stdout stream
+		const readStdout = async () => {
+			if (!proc.stdout || typeof proc.stdout === "number") return;
+
 			const reader = proc.stdout.getReader();
 			const decoder = new TextDecoder();
 
@@ -440,10 +442,12 @@ export class CodexCliRuntime implements AgentRuntime {
 			} catch {
 				// Stream may have been closed
 			}
-		}
+		};
 
-		// Stream stderr
-		if (proc.stderr && typeof proc.stderr !== "number") {
+		// Read stderr stream
+		const readStderr = async () => {
+			if (!proc.stderr || typeof proc.stderr === "number") return;
+
 			const reader = proc.stderr.getReader();
 			const decoder = new TextDecoder();
 
@@ -463,9 +467,10 @@ export class CodexCliRuntime implements AgentRuntime {
 			} catch {
 				// Stream may have been closed
 			}
-		}
+		};
 
-		await proc.exited;
+		// Read both streams concurrently to avoid deadlocks
+		await Promise.all([readStdout(), readStderr(), proc.exited]);
 
 		return {
 			exitCode: proc.exitCode ?? 0,
