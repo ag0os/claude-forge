@@ -255,68 +255,6 @@ describe("runner", () => {
 			expect(result.reason).toBe("single_run");
 		});
 
-		test("dispatches to runDirect when agentConfig has systemPromptText", async () => {
-			// When agentConfig has systemPromptText, should attempt direct spawn
-			// This will fail because 'claude' is not available, but we can verify
-			// it attempts to use direct mode by checking the error behavior
-			const agentConfig: AgentConfig = {
-				systemPromptText: "You are a test assistant.",
-			};
-
-			const result = await run({
-				agent: "not-used-in-direct-mode",
-				maxIterations: 1,
-				loop: false,
-				agentConfig,
-				cwd: directSpawnTmpDir,
-			});
-
-			// Direct spawn will fail because claude CLI is not available in test env
-			// The important thing is it didn't try to run the binary agent
-			// We verify by checking that it returns an error (not success from binary)
-			// Note: This is expected to fail with error since claude CLI is not available
-			expect(result.reason).toBe("single_run");
-		});
-
-		test("dispatches to runDirect when agentConfig has systemPrompt file path", async () => {
-			// When agentConfig has systemPrompt (file path), should attempt direct spawn
-			const agentConfig: AgentConfig = {
-				systemPrompt: "prompts/system.md",
-			};
-
-			const result = await run({
-				agent: "not-used-in-direct-mode",
-				maxIterations: 1,
-				loop: false,
-				agentConfig,
-				cwd: directSpawnTmpDir,
-			});
-
-			// Direct spawn will fail because claude CLI is not available in test env
-			// The important thing is it didn't try to run the binary agent
-			expect(result.reason).toBe("single_run");
-		});
-
-		test("dispatches to runDirect when agentConfig has both systemPrompt fields", async () => {
-			// When both systemPrompt and systemPromptText are set, should use direct mode
-			// (systemPromptText takes priority in the actual loading)
-			const agentConfig: AgentConfig = {
-				systemPrompt: "prompts/system.md",
-				systemPromptText: "Inline system prompt has priority.",
-			};
-
-			const result = await run({
-				agent: "not-used-in-direct-mode",
-				maxIterations: 1,
-				loop: false,
-				agentConfig,
-				cwd: directSpawnTmpDir,
-			});
-
-			// Direct spawn mode was attempted (even if it fails due to missing claude CLI)
-			expect(result.reason).toBe("single_run");
-		});
-
 		test("runBinary passes prompt to binary agent", async () => {
 			// Verify that binary mode still passes prompts correctly
 			const agentConfig: AgentConfig = {

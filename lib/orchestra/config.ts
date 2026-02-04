@@ -14,6 +14,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { $ } from "bun";
 
+import type { RuntimeBackend } from "../runtime/types";
+
 /**
  * Represents a single step in a chain
  */
@@ -72,6 +74,8 @@ export interface AgentConfig {
 	allowedTools?: string[];
 	/** List of disallowed tools (blacklist) */
 	disallowedTools?: string[];
+	/** Runtime backend to use (defaults to 'claude-cli') */
+	backend?: RuntimeBackend;
 }
 
 /**
@@ -324,6 +328,11 @@ function validateAndTransformConfig(
 const VALID_MODELS: AgentModel[] = ["sonnet", "opus", "haiku"];
 
 /**
+ * Valid backend values for validation
+ */
+const VALID_BACKENDS: RuntimeBackend[] = ["claude-cli", "codex-cli", "codex-sdk"];
+
+/**
  * Validate and transform a single agent configuration.
  *
  * @param rawAgent - The raw agent object
@@ -446,6 +455,18 @@ function validateAndTransformAgent(
 		}
 	}
 
+	// Validate backend if present
+	if ("backend" in agent && agent.backend !== undefined) {
+		if (typeof agent.backend !== "string") {
+			throw new Error(`${prefix} backend must be a string`);
+		}
+		if (!VALID_BACKENDS.includes(agent.backend as RuntimeBackend)) {
+			throw new Error(
+				`${prefix} backend must be one of: ${VALID_BACKENDS.join(", ")}`
+			);
+		}
+	}
+
 	return {
 		defaultPrompt: agent.defaultPrompt as string | undefined,
 		defaultPromptFile: agent.defaultPromptFile as string | undefined,
@@ -457,6 +478,7 @@ function validateAndTransformAgent(
 		maxTurns: agent.maxTurns as number | undefined,
 		allowedTools: agent.allowedTools as string[] | undefined,
 		disallowedTools: agent.disallowedTools as string[] | undefined,
+		backend: agent.backend as RuntimeBackend | undefined,
 	};
 }
 

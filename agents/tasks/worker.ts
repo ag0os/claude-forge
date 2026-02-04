@@ -1,4 +1,5 @@
 #!/usr/bin/env -S bun run
+
 /**
  * FORGE TASK WORKER: Implement a single assigned task
  *
@@ -14,14 +15,47 @@
  * - Report completion or blockers
  *
  * Usage:
- *   bun run agents/forge-task-worker.ts "Implement TASK-001"
- *   bun run agents/forge-task-worker.ts              # interactive mode
+ *   bun run agents/tasks/worker.ts "Implement TASK-001"
+ *   bun run agents/tasks/worker.ts                        # interactive mode
+ *   bun run agents/tasks/worker.ts --print "TASK-001"     # print mode (non-interactive)
+ *   bun run agents/tasks/worker.ts --backend codex-cli    # use alternate backend
+ *
+ * ## Runtime Abstraction Migration Pattern
+ *
+ * This agent uses the runtime abstraction layer (lib/runtime) which enables
+ * backend switching via the --backend flag. The pattern is:
+ *
+ * 1. Import from lib/runtime instead of lib/claude:
+ *    - runAgentOnce() for print mode (non-interactive, captured output)
+ *    - runAgentInteractive() for interactive mode (inherited stdio)
+ *
+ * 2. Import getBackend, validateBackendFlags, isPrintMode from lib/flags:
+ *    - getBackend() resolves --backend flag or FORGE_BACKEND env var
+ *    - validateBackendFlags() warns about incompatible Claude-specific flags
+ *    - isPrintMode() checks if --print flag was passed
+ *
+ * 3. Build RunOptions instead of CLI args:
+ *    - prompt: positional argument
+ *    - systemPrompt: from system-prompts/*.md
+ *    - settings: JSON.stringify(settingsObject)
+ *    - mcpConfig: JSON.stringify(mcpObject)
+ *    - cwd: project root
+ *    - env: additional environment variables
+ *
+ * 4. Call the appropriate runtime function based on mode:
+ *    - isPrintMode() ? runAgentOnce(options) : runAgentInteractive(options)
  */
 
+import type { ClaudeFlags } from "../../lib";
 import {
-	buildClaudeFlags,
+	getBackend,
 	getPositionals,
-	spawnClaudeAndWait,
+	isPrintMode,
+	parsedArgs,
+	runAgentInteractive,
+	runAgentOnce,
+	toFlags,
+	validateBackendFlags,
 } from "../../lib";
 import taskWorkerMcp from "../../settings/forge-task-worker.mcp.json" with {
 	type: "json",
@@ -38,25 +72,138 @@ function resolvePath(relativeFromThisFile: string): string {
 	return url.pathname;
 }
 
-const projectRoot = resolvePath("../");
+async function main() {
+	const projectRoot = resolvePath("../");
 
-// Get any prompt from positional arguments
-const positionals = getPositionals();
-const userPrompt = positionals.join(" ");
+	const cliValues = parsedArgs.values as Record<
+		string,
+		string | boolean | string[] | undefined
+	>;
 
-// Build Claude flags
-const flags = buildClaudeFlags({
-	settings: JSON.stringify(taskWorkerSettings),
-	"mcp-config": JSON.stringify(taskWorkerMcp),
-	"append-system-prompt": taskWorkerSystemPrompt,
-});
+	const coerceList = (
+		value: string | string[] | boolean | undefined,
+	): string[] | undefined => {
+		if (typeof value === "string") {
+			const items = value.split(/[,\s]+/).filter(Boolean);
+			return items.length > 0 ? items : undefined;
+		}
 
-// Add the prompt as positional argument if provided
-const args = userPrompt ? [...flags, userPrompt] : [...flags];
+		if (Array.isArray(value)) {
+			const items = value.flatMap((entry) =>
+				entry.split(/[,\s]+/).filter(Boolean),
+			);
+			return items.length > 0 ? items : undefined;
+		}
 
-const exitCode = await spawnClaudeAndWait({
-	args,
-	env: { CLAUDE_PROJECT_DIR: projectRoot },
-});
+		return undefined;
+	};
 
-process.exit(exitCode);
+	const coerceNumber = (value: string | boolean | string[] | undefined) => {
+		if (typeof value === "string" && value.trim() !== "") {
+			const parsed = Number(value);
+			return Number.isFinite(parsed) ? parsed : undefined;
+		}
+		return undefined;
+	};
+
+	// Get backend and validate flags
+	const backend = getBackend();
+	validateBackendFlags(backend);
+
+	// Get any prompt from positional arguments
+	const positionals = getPositionals();
+	const cliPrompt =
+		typeof cliValues.prompt === "string" ? cliValues.prompt : undefined;
+	const userPrompt =
+		positionals.join(" ") || cliPrompt || "Help me with my task";
+
+	const cliModel =
+		typeof cliValues.model === "string" ? cliValues.model : undefined;
+	const cliMaxTurns = coerceNumber(
+		(cliValues["max-turns"] ?? cliValues.maxTurns) as
+			| string
+			| boolean
+			| string[]
+			| undefined,
+	);
+	const cliAllowedTools = coerceList(cliValues.allowedTools);
+	const cliDisallowedTools = coerceList(cliValues.disallowedTools);
+	const cliSettings =
+		typeof cliValues.settings === "string" ? cliValues.settings : undefined;
+	const rawMcpConfig = cliValues["mcp-config"] ?? cliValues.mcpConfig;
+	const cliMcpConfig =
+		typeof rawMcpConfig === "string" ? rawMcpConfig : undefined;
+	const rawAppendSystemPrompt =
+		cliValues["append-system-prompt"] ?? cliValues.appendSystemPrompt;
+	const cliAppendSystemPrompt =
+		typeof rawAppendSystemPrompt === "string"
+			? rawAppendSystemPrompt
+			: undefined;
+	const cliSkipPermissions =
+		(cliValues["dangerously-skip-permissions"] ??
+			cliValues.dangerouslySkipPermissions) === true;
+
+	const mappedFlags = new Set([
+		"backend",
+		"print",
+		"prompt",
+		"model",
+		"max-turns",
+		"maxTurns",
+		"allowedTools",
+		"disallowedTools",
+		"settings",
+		"mcp-config",
+		"mcpConfig",
+		"append-system-prompt",
+		"appendSystemPrompt",
+		"dangerously-skip-permissions",
+		"dangerouslySkipPermissions",
+	]);
+
+	const filteredFlags = Object.fromEntries(
+		Object.entries(cliValues).filter(
+			([key, value]) => value !== undefined && !mappedFlags.has(key),
+		),
+	) as ClaudeFlags;
+
+	const rawArgs = backend === "claude-cli" ? toFlags(filteredFlags) : undefined;
+
+	// Build RunOptions for the runtime abstraction
+	const options = {
+		prompt: userPrompt,
+		systemPrompt: cliAppendSystemPrompt
+			? `${taskWorkerSystemPrompt}\n\n${cliAppendSystemPrompt}`
+			: taskWorkerSystemPrompt,
+		settings: cliSettings ?? JSON.stringify(taskWorkerSettings),
+		mcpConfig: cliMcpConfig ?? JSON.stringify(taskWorkerMcp),
+		cwd: projectRoot,
+		env: { CLAUDE_PROJECT_DIR: projectRoot },
+		backend,
+		model: cliModel,
+		maxTurns: cliMaxTurns,
+		skipPermissions: cliSkipPermissions ? true : undefined,
+		tools:
+			cliAllowedTools || cliDisallowedTools
+				? {
+						allowed: cliAllowedTools,
+						disallowed: cliDisallowedTools,
+					}
+				: undefined,
+		rawArgs: rawArgs && rawArgs.length > 0 ? rawArgs : undefined,
+	};
+
+	// Choose execution mode based on --print flag
+	const result = isPrintMode()
+		? await runAgentOnce(options)
+		: await runAgentInteractive(options);
+
+	// In print mode, output the captured response
+	if (isPrintMode() && result.stdout) {
+		process.stdout.write(result.stdout);
+	}
+
+	process.exit(result.exitCode);
+}
+
+await main();

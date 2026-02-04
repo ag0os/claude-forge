@@ -1,12 +1,12 @@
 /**
  * Core runner for orchestra agent execution
  *
- * Spawns agent binaries or Claude directly, streams output, detects completion markers,
- * and handles loop/single-run modes.
+ * Spawns agent binaries or uses runtime abstraction for Claude execution,
+ * streams output, detects completion markers, and handles loop/single-run modes.
  *
  * Direct spawn mode: When an agent config has systemPrompt or systemPromptText,
- * the runner spawns Claude directly with --append-system-prompt instead of
- * running a compiled binary.
+ * the runner uses the runtime abstraction to execute Claude with the composed
+ * system prompt instead of running a compiled binary.
  */
 
 import { spawn, type Subprocess } from "bun";
@@ -15,6 +15,7 @@ import { isAbsolute, join } from "node:path";
 import { isDirectSpawnAgent, type AgentConfig } from "./config";
 import { COMPLETION_MARKER } from "./constants";
 import { composeSystemPrompt, loadAgentSystemPrompt } from "./mode-awareness";
+import { getRuntime } from "../runtime";
 
 /**
  * Re-export COMPLETION_MARKER for backward compatibility
@@ -220,12 +221,12 @@ async function runBinary(options: RunOptions): Promise<RunResult> {
 }
 
 /**
- * Run a direct spawn agent (spawns Claude CLI directly)
+ * Run a direct spawn agent using the runtime abstraction
  *
- * Builds a claude command with:
- * - --print and --dangerously-skip-permissions (non-interactive mode)
- * - --append-system-prompt with composed prompt (mode awareness + agent prompt)
- * - Optional --max-turns, --model, --mcp-config, --settings, --allowedTools, --disallowedTools
+ * Uses the runtime abstraction layer to execute Claude with:
+ * - Composed system prompt (mode awareness + agent prompt)
+ * - Model, MCP config, settings, and tool restrictions from agent config
+ * - Skip permissions for headless mode
  *
  * @param options - Run configuration (must include agentConfig)
  * @returns RunResult with completion status and metadata
@@ -269,31 +270,53 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 
 	const composedSystemPrompt = composeSystemPrompt(rawSystemPrompt);
 
-	// Build the base claude command arguments
-	const claudeArgs = buildClaudeArgs(agentConfig, composedSystemPrompt, resolvedCwd);
+	// Get the runtime for the specified backend (defaults to claude-cli)
+	const runtime = getRuntime(agentConfig.backend ?? "claude-cli");
 
-	// Append additional args
-	claudeArgs.push(...args);
+	// Build runtime run options from agent config
+	const runtimeOptions = buildRuntimeOptions(
+		agentConfig,
+		composedSystemPrompt,
+		resolvedCwd,
+		prompt,
+		args
+	);
 
-	// Append prompt as last positional argument if provided
-	if (prompt) {
-		claudeArgs.push(prompt);
-	}
+	// Single-run mode: execute once and return
+	if (!loop) {
+		const caps = runtime.capabilities();
+		let result: import("../runtime").RunResult;
 
-	// Track child process for signal forwarding
-	let currentProcess: Subprocess | null = null;
-	let signalReceived = false;
-
-	// Set up signal handlers for graceful shutdown
-	const handleSignal = (signal: NodeJS.Signals) => {
-		signalReceived = true;
-		if (currentProcess) {
-			try {
-				currentProcess.kill(signal);
-			} catch {
-				// Process may have already exited
+		if (caps.supportsStreaming) {
+			result = await runtime.runStreaming(runtimeOptions, {
+				onStdout: (data) => process.stdout.write(data),
+				onStderr: (data) => process.stderr.write(data),
+			});
+		} else {
+			result = await runtime.run(runtimeOptions);
+			if (result.stdout) {
+				process.stdout.write(result.stdout);
+			}
+			if (result.stderr) {
+				process.stderr.write(result.stderr);
 			}
 		}
+
+		return {
+			complete: result.exitCode === 0,
+			iterations: 1,
+			exitCode: result.exitCode,
+			reason: "single_run",
+		};
+	}
+
+	// Loop mode: iterate until marker or max iterations
+	let iterations = 0;
+	let lastExitCode = 0;
+	let signalReceived = false;
+
+	const handleSignal = (_signal: NodeJS.Signals) => {
+		signalReceived = true;
 	};
 
 	const sigintHandler = () => handleSignal("SIGINT");
@@ -308,24 +331,6 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 	};
 
 	try {
-		// Single-run mode: execute once and return
-		if (!loop) {
-			const result = await runDirectOnce(claudeArgs, resolvedCwd, verbose);
-			currentProcess = null;
-			cleanup();
-
-			return {
-				complete: result.exitCode === 0,
-				iterations: 1,
-				exitCode: result.exitCode,
-				reason: "single_run",
-			};
-		}
-
-		// Loop mode: iterate until marker or max iterations
-		let iterations = 0;
-		let lastExitCode = 0;
-
 		while (iterations < maxIterations && !signalReceived) {
 			iterations++;
 
@@ -335,21 +340,19 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 				);
 			}
 
-			const result = await runDirectOnceWithMarkerDetection(
-				claudeArgs,
-				resolvedCwd,
-				verbose,
-				(proc) => {
-					currentProcess = proc;
-				},
+			// Use streaming to detect the completion marker
+			const result = await runtime.runStreaming(
+				runtimeOptions,
+				{
+					onStdout: (data) => process.stdout.write(data),
+					onStderr: (data) => process.stderr.write(data),
+				}
 			);
 
 			lastExitCode = result.exitCode;
-			currentProcess = null;
 
 			// Check if completion marker was detected
-			if (result.markerDetected) {
-				cleanup();
+			if (result.completionMarkerFound) {
 				return {
 					complete: true,
 					iterations,
@@ -357,89 +360,69 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 					reason: "marker",
 				};
 			}
-
-			// If signal received during iteration, break out
-			if (signalReceived) {
-				break;
-			}
 		}
-
-		// Max iterations reached without completion
+	} finally {
 		cleanup();
-		return {
-			complete: false,
-			iterations,
-			exitCode: lastExitCode,
-			reason: signalReceived ? "error" : "max_iterations",
-		};
-	} catch (error) {
-		cleanup();
-		return {
-			complete: false,
-			iterations: 0,
-			exitCode: 1,
-			reason: "error",
-		};
 	}
+
+	// Max iterations reached without completion
+	return {
+		complete: false,
+		iterations,
+		exitCode: lastExitCode,
+		reason: signalReceived ? "error" : "max_iterations",
+	};
 }
 
 /**
- * Build Claude CLI arguments from agent config
+ * Build runtime run options from agent config
  *
  * @param agentConfig - Agent configuration with optional settings
  * @param composedSystemPrompt - The composed system prompt (mode awareness + agent prompt)
  * @param cwd - Working directory for resolving relative paths
- * @returns Array of CLI arguments for the claude command
+ * @param prompt - Optional prompt to pass to the agent
+ * @param rawArgs - Additional raw CLI arguments
+ * @returns RunOptions for the runtime
  */
-function buildClaudeArgs(
+function buildRuntimeOptions(
 	agentConfig: AgentConfig,
 	composedSystemPrompt: string,
-	cwd: string
-): string[] {
-	const args: string[] = [
-		"--print",
-		"--dangerously-skip-permissions",
-		"--append-system-prompt",
-		composedSystemPrompt,
-	];
-
-	// Add --max-turns if configured
-	if (agentConfig.maxTurns !== undefined) {
-		args.push("--max-turns", String(agentConfig.maxTurns));
-	}
-
-	// Add --model if configured
-	if (agentConfig.model !== undefined) {
-		args.push("--model", agentConfig.model);
-	}
-
-	// Add --mcp-config if configured (resolve relative paths)
+	cwd: string,
+	prompt?: string,
+	rawArgs: string[] = []
+): import("../runtime").RunOptions {
+	// Resolve MCP config path if relative
+	let mcpConfig: string | undefined;
 	if (agentConfig.mcpConfig !== undefined) {
-		const mcpPath = isAbsolute(agentConfig.mcpConfig)
+		mcpConfig = isAbsolute(agentConfig.mcpConfig)
 			? agentConfig.mcpConfig
 			: join(cwd, agentConfig.mcpConfig);
-		args.push("--mcp-config", mcpPath);
 	}
 
-	// Add --settings if configured (resolve relative paths)
+	// Resolve settings path if relative
+	let settings: string | undefined;
 	if (agentConfig.settings !== undefined) {
-		const settingsPath = isAbsolute(agentConfig.settings)
+		settings = isAbsolute(agentConfig.settings)
 			? agentConfig.settings
 			: join(cwd, agentConfig.settings);
-		args.push("--settings", settingsPath);
 	}
 
-	// Add --allowedTools if configured
-	if (agentConfig.allowedTools !== undefined && agentConfig.allowedTools.length > 0) {
-		args.push("--allowedTools", agentConfig.allowedTools.join(","));
-	}
-
-	// Add --disallowedTools if configured
-	if (agentConfig.disallowedTools !== undefined && agentConfig.disallowedTools.length > 0) {
-		args.push("--disallowedTools", agentConfig.disallowedTools.join(","));
-	}
-
-	return args;
+	return {
+		prompt,
+		systemPrompt: composedSystemPrompt,
+		cwd,
+		mode: "print",
+		skipPermissions: true,
+		model: agentConfig.model,
+		maxTurns: agentConfig.maxTurns,
+		mcpConfig,
+		settings,
+		tools: {
+			allowed: agentConfig.allowedTools,
+			disallowed: agentConfig.disallowedTools,
+		},
+		rawArgs: rawArgs.length > 0 ? rawArgs : undefined,
+	};
 }
 
 /**
@@ -508,59 +491,6 @@ async function runBinaryOnceWithMarkerDetection(
 	return result;
 }
 
-// ============================================================================
-// Direct spawn helpers (for Claude CLI direct spawning)
-// ============================================================================
-
-/**
- * Run Claude directly once without marker detection (for single-run mode)
- */
-async function runDirectOnce(
-	args: string[],
-	cwd: string,
-	_verbose?: boolean,
-): Promise<{ exitCode: number }> {
-	const proc = spawn(["claude", ...args], {
-		stdin: "inherit",
-		stdout: "inherit",
-		stderr: "inherit",
-		cwd,
-		env: process.env,
-	});
-
-	await proc.exited;
-
-	return {
-		exitCode: proc.exitCode ?? 0,
-	};
-}
-
-/**
- * Run Claude directly once with stdout streaming and marker detection (for loop mode)
- */
-async function runDirectOnceWithMarkerDetection(
-	args: string[],
-	cwd: string,
-	_verbose?: boolean,
-	onProcessStart?: (proc: Subprocess) => void,
-): Promise<SingleRunResult> {
-	const proc = spawn(["claude", ...args], {
-		stdin: "inherit",
-		stdout: "pipe",
-		stderr: "inherit",
-		cwd,
-		env: process.env,
-	});
-
-	// Notify caller of process start for signal handling
-	if (onProcessStart) {
-		onProcessStart(proc);
-	}
-
-	const result = await streamAndDetectMarker(proc);
-
-	return result;
-}
 
 // ============================================================================
 // Shared helpers
