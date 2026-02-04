@@ -144,15 +144,17 @@ export class CodexCliRuntime implements AgentRuntime {
 		const args = this.buildExecArgs(options, fullPrompt);
 		const { cwd, env } = options;
 
+		const command = process.env.CODEX_PATH ?? "codex";
+
 		// Log the constructed command for debugging
-		debugCommand("codex", args, { cwd, env });
+		debugCommand(command, args, { cwd, env });
 
 		debugSpawn("Spawning Codex CLI process (exec mode)", {
 			cwd: cwd || process.cwd(),
 		});
 
-		const proc = spawn(["codex", ...args], {
-			stdin: "inherit",
+		const proc = spawn([command, ...args], {
+			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
 			cwd: cwd || process.cwd(),
@@ -213,14 +215,16 @@ export class CodexCliRuntime implements AgentRuntime {
 		const args = this.buildInteractiveArgs(options, fullPrompt);
 		const { cwd, env } = options;
 
+		const command = process.env.CODEX_PATH ?? "codex";
+
 		// Log the constructed command for debugging
-		debugCommand("codex", args, { cwd, env });
+		debugCommand(command, args, { cwd, env });
 
 		debugSpawn("Spawning Codex CLI process (interactive mode)", {
 			cwd: cwd || process.cwd(),
 		});
 
-		const proc = spawn(["codex", ...args], {
+		const proc = spawn([command, ...args], {
 			stdin: "inherit",
 			stdout: "inherit",
 			stderr: "inherit",
@@ -271,10 +275,14 @@ export class CodexCliRuntime implements AgentRuntime {
 	 */
 	private buildPrompt(options: RunOptions | Omit<RunOptions, "mode">): string {
 		const runOptions = options as RunOptions;
+		const prompt = runOptions.prompt ?? "";
 		if (runOptions.systemPrompt) {
-			return `${runOptions.systemPrompt}\n\n---\n\n${runOptions.prompt}`;
+			if (prompt.length > 0) {
+				return `${runOptions.systemPrompt}\n\n---\n\n${prompt}`;
+			}
+			return runOptions.systemPrompt;
 		}
-		return runOptions.prompt;
+		return prompt;
 	}
 
 	/**
@@ -286,10 +294,7 @@ export class CodexCliRuntime implements AgentRuntime {
 	 * @param prompt - The full prompt (with system prompt prepended if applicable)
 	 * @returns Array of CLI arguments
 	 */
-	private buildExecArgs(
-		options: RunOptions,
-		prompt: string
-	): string[] {
+	private buildExecArgs(options: RunOptions, prompt: string): string[] {
 		const args: string[] = ["exec"];
 
 		// Add model if specified
@@ -302,8 +307,10 @@ export class CodexCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
-		// Add prompt as the final argument
-		args.push(prompt);
+		if (prompt.length > 0) {
+			// Use -- to avoid prompt being parsed as a flag
+			args.push("--", prompt);
+		}
 
 		return args;
 	}
@@ -331,8 +338,10 @@ export class CodexCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
-		// Add prompt as the final argument (initial prompt for interactive session)
-		args.push(prompt);
+		if (prompt.length > 0) {
+			// Add prompt as the final argument (initial prompt for interactive session)
+			args.push(prompt);
+		}
 
 		return args;
 	}

@@ -100,6 +100,8 @@ export const INSTALL_INSTRUCTIONS: Record<RuntimeBackend, string> = {
 		"Install Codex CLI with: npm install -g @openai/codex\n" +
 		"Then authenticate with: codex auth",
 	"codex-sdk":
+		"Note: codex-sdk backend is not implemented in claude-forge yet.\n" +
+		"Use codex-cli for now. If you are implementing the SDK backend:\n" +
 		"Install Codex SDK with: npm install @openai/codex\n" +
 		"Then set your OPENAI_API_KEY environment variable",
 };
@@ -678,9 +680,33 @@ export async function runAgentInteractive(
 			`[runtime] Warning: Backend "${runtime.backend}" does not support interactive mode.\n` +
 				`  The agent will run in print mode instead.`,
 		);
+
+		const printOptions: RunOptions = {
+			...runOptions,
+			mode: "print",
+		};
+
+		// Check and warn about capability mismatches for print mode
+		checkCapabilities(runtime, printOptions);
+
+		if (caps.supportsStreaming) {
+			return runtime.runStreaming(printOptions, {
+				onStdout: (data) => process.stdout.write(data),
+				onStderr: (data) => process.stderr.write(data),
+			});
+		}
+
+		const result = await runtime.run(printOptions);
+		if (result.stdout) {
+			process.stdout.write(result.stdout);
+		}
+		if (result.stderr) {
+			process.stderr.write(result.stderr);
+		}
+		return result;
 	}
 
-	// Check and warn about capability mismatches (using print mode for check)
+	// Check and warn about capability mismatches (using interactive mode for check)
 	const checkOptions: RunOptions = {
 		...runOptions,
 		mode: "interactive",
@@ -765,6 +791,9 @@ export { ClaudeCliRuntime, createClaudeCliRuntime } from "./claude-cli";
 // Export Codex CLI runtime for direct use
 export { CodexCliRuntime, createCodexCliRuntime } from "./codex-cli";
 
+// Export Codex SDK runtime for direct use
+export { CodexSdkRuntime, createCodexSdkRuntime } from "./codex-sdk";
+
 // ============================================================================
 // Auto-registration
 // ============================================================================
@@ -776,3 +805,7 @@ registerRuntime("claude-cli", createClaudeCliRuntime);
 // Import and register the Codex CLI runtime
 import { createCodexCliRuntime } from "./codex-cli";
 registerRuntime("codex-cli", createCodexCliRuntime);
+
+// Import and register the Codex SDK runtime (stub)
+import { createCodexSdkRuntime } from "./codex-sdk";
+registerRuntime("codex-sdk", createCodexSdkRuntime);

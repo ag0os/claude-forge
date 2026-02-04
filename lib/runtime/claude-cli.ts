@@ -134,8 +134,10 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		const args = this.buildArgs(options);
 		const { cwd, env } = options;
 
+		const command = process.env.CLAUDE_PATH ?? "claude";
+
 		// Log the constructed command for debugging
-		debugCommand("claude", args, { cwd, env });
+		debugCommand(command, args, { cwd, env });
 
 		// Create a clean temp directory to avoid file watcher errors on socket files
 		const cleanTmpDir = mkdtempSync(join(tmpdir(), "claude-runtime-"));
@@ -147,7 +149,7 @@ export class ClaudeCliRuntime implements AgentRuntime {
 
 		// For print mode, don't inherit stdin since it's non-interactive
 		// This prevents hanging when no user input is available
-		const proc = spawn(["claude", ...args], {
+		const proc = spawn([command, ...args], {
 			stdin: "ignore",
 			stdout: "pipe",
 			stderr: "pipe",
@@ -215,8 +217,10 @@ export class ClaudeCliRuntime implements AgentRuntime {
 		const args = this.buildArgsInteractive(options);
 		const { cwd, env } = options;
 
+		const command = process.env.CLAUDE_PATH ?? "claude";
+
 		// Log the constructed command for debugging
-		debugCommand("claude", args, { cwd, env });
+		debugCommand(command, args, { cwd, env });
 
 		// Create a clean temp directory to avoid file watcher errors
 		const cleanTmpDir = mkdtempSync(join(tmpdir(), "claude-runtime-"));
@@ -226,7 +230,7 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			tmpDir: cleanTmpDir,
 		});
 
-		const proc = spawn(["claude", ...args], {
+		const proc = spawn([command, ...args], {
 			stdin: "inherit",
 			stdout: "inherit",
 			stderr: "inherit",
@@ -339,13 +343,15 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
-		// Use -- to separate options from positional arguments
-		// This prevents flags like --mcp-config (which accepts variadic args)
-		// from consuming the prompt as one of their values
-		args.push("--");
+		if (options.prompt !== undefined && options.prompt !== "") {
+			// Use -- to separate options from positional arguments
+			// This prevents flags like --mcp-config (which accepts variadic args)
+			// from consuming the prompt as one of their values
+			args.push("--");
 
-		// Add prompt as final positional argument
-		args.push(options.prompt);
+			// Add prompt as final positional argument
+			args.push(options.prompt);
+		}
 
 		return args;
 	}
@@ -404,13 +410,15 @@ export class ClaudeCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
-		// Use -- to separate options from positional arguments
-		// This prevents flags like --mcp-config (which accepts variadic args)
-		// from consuming the prompt as one of their values
-		args.push("--");
+		if (options.prompt !== undefined && options.prompt !== "") {
+			// Use -- to separate options from positional arguments
+			// This prevents flags like --mcp-config (which accepts variadic args)
+			// from consuming the prompt as one of their values
+			args.push("--");
 
-		// Add prompt as final positional argument
-		args.push(options.prompt);
+			// Add prompt as final positional argument
+			args.push(options.prompt);
+		}
 
 		return args;
 	}

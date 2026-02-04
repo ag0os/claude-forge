@@ -284,7 +284,23 @@ async function runDirect(options: RunOptions): Promise<RunResult> {
 
 	// Single-run mode: execute once and return
 	if (!loop) {
-		const result = await runtime.run(runtimeOptions);
+		const caps = runtime.capabilities();
+		let result: import("../runtime").RunResult;
+
+		if (caps.supportsStreaming) {
+			result = await runtime.runStreaming(runtimeOptions, {
+				onStdout: (data) => process.stdout.write(data),
+				onStderr: (data) => process.stderr.write(data),
+			});
+		} else {
+			result = await runtime.run(runtimeOptions);
+			if (result.stdout) {
+				process.stdout.write(result.stdout);
+			}
+			if (result.stderr) {
+				process.stderr.write(result.stderr);
+			}
+		}
 
 		return {
 			complete: result.exitCode === 0,
@@ -372,7 +388,7 @@ function buildRuntimeOptions(
 	}
 
 	return {
-		prompt: prompt || "",
+		prompt,
 		systemPrompt: composedSystemPrompt,
 		cwd,
 		mode: "print",

@@ -129,8 +129,9 @@ export interface RunOptions {
 	/**
 	 * The prompt/instruction to send to the agent
 	 * This is the main user input that the agent will process.
+	 * Optional for direct-spawn flows that rely solely on system prompts.
 	 */
-	prompt: string;
+	prompt?: string;
 
 	/**
 	 * System prompt to prepend to the conversation
