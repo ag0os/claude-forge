@@ -8,6 +8,18 @@
     "builder": {
       "systemPrompt": "forge/orch/prompts/builder.md",
       "model": "opus"
+    },
+    "reviewer": {
+      "systemPrompt": "forge/orch/prompts/reviewer.md",
+      "model": "opus"
+    },
+    "fixer": {
+      "systemPrompt": "forge/orch/prompts/fixer.md",
+      "model": "opus"
+    },
+    "refactorer": {
+      "systemPrompt": "forge/orch/prompts/refactorer.md",
+      "model": "opus"
     }
   },
   "chains": {
@@ -25,6 +37,17 @@
     "plan": {
       "description": "Run orchestra planner to create implementation tasks from requirements.",
       "steps": [{ "agent": "planner", "iterations": 5 }]
+    },
+    "build-quality": {
+      "description": "Planner + builder, then refactor/review/fix loop with a final review pass.",
+      "steps": [
+        { "agent": "planner", "iterations": 3 },
+        { "agent": "builder", "iterations": 20 },
+        { "agent": "refactorer", "iterations": 3 },
+        { "agent": "reviewer", "iterations": 3 },
+        { "agent": "fixer", "iterations": 5 },
+        { "agent": "reviewer", "iterations": 2 }
+      ]
     }
   }
 }

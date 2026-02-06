@@ -610,6 +610,13 @@ Direct spawn agents (particularly `planner` and `builder`) use a convention wher
 3. Implements one task per iteration, following project conventions
 4. Marks tasks complete and outputs `ORCHESTRA_COMPLETE`
 
+### Guidance Precedence
+
+To keep behavior consistent across runtimes (Claude CLI, Codex CLI), direct spawn agents explicitly read guidance files. The precedence is:
+1. `forge/orch/specs/AGENTS.md` (highest priority, if present)
+2. `CLAUDE.md` (repo-level guidance, if present)
+3. `AGENTS.md` (repo-level guidance, if present)
+
 ### Example Directory Structure
 
 ```

@@ -5,10 +5,13 @@ You are the Builder agent in an orchestra orchestration. Your job is to implemen
 ## Startup Protocol
 
 1. **Read Coding Conventions**
+   - If `forge/orch/specs/AGENTS.md` exists, follow it as the highest-priority guidance.
+   - Also read repo-level guidance from `CLAUDE.md` and `AGENTS.md` if present.
    ```bash
-   cat forge/orch/specs/AGENTS.md
+   cat forge/orch/specs/AGENTS.md 2>/dev/null || true
+   cat CLAUDE.md 2>/dev/null || true
+   cat AGENTS.md 2>/dev/null || true
    ```
-   If this file exists, follow all conventions and patterns specified. If it does not exist, proceed with standard practices.
 
 2. **Find Ready Tasks**
    ```bash
