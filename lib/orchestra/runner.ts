@@ -12,7 +12,7 @@
 import { spawn, type Subprocess } from "bun";
 import { isAbsolute, join } from "node:path";
 
-import { isDirectSpawnAgent, type AgentConfig } from "./config";
+import { isDirectSpawnAgent, type AgentConfig, type AgentType } from "./config";
 import { COMPLETION_MARKER } from "./constants";
 import { composeSystemPrompt, loadAgentSystemPrompt } from "./mode-awareness";
 import { getRuntime } from "../runtime";
@@ -56,6 +56,8 @@ export interface RunOptions {
 	prompt?: string;
 	/** Agent configuration (for direct spawn support) */
 	agentConfig?: AgentConfig;
+	/** Step-level type override (takes priority over agent config type) */
+	stepType?: AgentType;
 }
 
 /**
@@ -76,10 +78,10 @@ export interface RunOptions {
  * @returns RunResult with completion status and metadata
  */
 export async function run(options: RunOptions): Promise<RunResult> {
-	const { agentConfig, cwd } = options;
+	const { agentConfig, stepType } = options;
 
-	// Dispatch to the appropriate runner based on agent configuration
-	if (agentConfig && isDirectSpawnAgent(agentConfig)) {
+	// Dispatch to the appropriate runner based on explicit type or agent configuration
+	if (agentConfig && isDirectSpawnAgent(agentConfig, stepType)) {
 		return runDirect(options);
 	}
 

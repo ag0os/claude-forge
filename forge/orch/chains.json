@@ -1,23 +1,28 @@
 {
   "agents": {
     "planner": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/planner.md",
       "model": "opus",
       "allowedTools": ["Read", "Grep", "Glob", "Bash"]
     },
     "builder": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/builder.md",
       "model": "opus"
     },
     "reviewer": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/reviewer.md",
       "model": "opus"
     },
     "fixer": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/fixer.md",
       "model": "opus"
     },
     "refactorer": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/refactorer.md",
       "model": "opus"
     }

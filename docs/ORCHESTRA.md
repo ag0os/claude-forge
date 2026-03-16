@@ -526,7 +526,15 @@ When defining a direct spawn agent in the `agents` section of `forge/orch/chains
 | `allowedTools` | string[] | Whitelist of allowed tool names |
 | `disallowedTools` | string[] | Blacklist of disallowed tool names |
 
-**Note**: An agent is identified as direct spawn if it has either `systemPrompt` or `systemPromptText` defined. Without these fields, the agent is treated as a binary spawn agent.
+| `type` | string | Explicit execution type: `"direct"` or `"binary"`. When omitted, inferred from `systemPrompt`/`systemPromptText` presence |
+| `backend` | string | Runtime backend: `"claude-cli"`, `"codex-cli"`, or `"codex-sdk"` (defaults to `"claude-cli"`) |
+
+**Type resolution**: An agent's execution type is resolved with this priority:
+1. Step-level `type` override (in chain step config)
+2. Agent-level `type` field (in agent config)
+3. Inferred: agents with `systemPrompt` or `systemPromptText` are `"direct"`, otherwise `"binary"`
+
+Use `--dry-run` to see resolved types: `orchestra --chain build-all --dry-run`
 
 ### Mode Awareness
 
@@ -545,11 +553,13 @@ This ensures direct spawn agents behave correctly in the orchestra orchestration
 {
   "agents": {
     "planner": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/planner.md",
       "model": "sonnet",
       "allowedTools": ["Read", "Grep", "Glob", "Bash"]
     },
     "builder": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/builder.md",
       "model": "sonnet"
     }
@@ -575,12 +585,31 @@ In this example:
 
 | Aspect | Binary Spawn | Direct Spawn |
 |--------|--------------|--------------|
-| **Definition** | TypeScript file in `agents/` | Config entry with `systemPrompt` |
+| **Definition** | TypeScript file in `agents/` | Config entry with `type: "direct"` and `systemPrompt` |
 | **Compilation** | Required (`bun compile`) | Not needed |
 | **Customization** | Full programmatic control | Configuration-only |
 | **System prompt** | Defined in TypeScript code | Loaded from file or inline |
 | **Mode awareness** | Agent must handle itself | Automatically prepended |
 | **Use case** | Complex agents with custom logic | Prompt-driven agents |
+
+### Step-Level Type Override
+
+You can override the execution type per step in a chain. This is useful for testing the same agent in different modes or mixing binary and direct agents:
+
+```json
+{
+  "chains": {
+    "test-mixed": {
+      "steps": [
+        { "agent": "planner", "iterations": 3, "type": "direct" },
+        { "agent": "tasks:coordinator", "iterations": 10, "type": "binary" }
+      ]
+    }
+  }
+}
+```
+
+Step-level `type` takes priority over the agent-level `type` setting.
 
 ---
 

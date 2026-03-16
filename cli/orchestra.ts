@@ -25,6 +25,7 @@ import {
 	type ChainConfig,
 	getChain,
 	loadConfig,
+	resolveAgentType,
 	substituteVars,
 	substituteVarsInChain,
 } from "../lib/orchestra/config";
@@ -133,7 +134,7 @@ EXIT CODES:
 /**
  * Print a formatted summary of the chain result
  */
-function printSummary(result: ChainResult, steps: ChainStep[]) {
+function printSummary(result: ChainResult, steps: ChainStep[], agentDefaults?: Record<string, AgentConfig>) {
 	const completedSteps = result.steps.filter((s) => s.result.complete).length;
 	const totalSteps = steps.length;
 
@@ -151,9 +152,10 @@ function printSummary(result: ChainResult, steps: ChainStep[]) {
 			? ` (${stepResult.result.iterations}/${step.iterations} iterations)`
 			: "";
 		const reason = stepResult.result.reason;
+		const { type: agentType } = resolveAgentType(agentDefaults?.[step.agent], step.type);
 
 		console.log(
-			`  ${i + 1}. ${stepResult.agent}: ${status}${iterInfo} [${reason}]`,
+			`  ${i + 1}. ${stepResult.agent} [${agentType}]: ${status}${iterInfo} [${reason}]`,
 		);
 	}
 
@@ -161,7 +163,8 @@ function printSummary(result: ChainResult, steps: ChainStep[]) {
 	for (let i = result.steps.length; i < steps.length; i++) {
 		const step = steps[i];
 		if (!step) continue;
-		console.log(`  ${i + 1}. ${step.agent}: skipped`);
+		const { type: agentType } = resolveAgentType(agentDefaults?.[step.agent], step.type);
+		console.log(`  ${i + 1}. ${step.agent} [${agentType}]: skipped`);
 	}
 
 	if (result.success) {
@@ -220,7 +223,12 @@ async function printDryRun(options: DryRunOptions) {
 			? ` args: [${step.args.join(", ")}]`
 			: "";
 
-		console.log(`  ${i + 1}. ${step.agent} - ${modeDesc}${argsDesc}`);
+		// Resolve and display execution type
+		const agentConfig = agentDefaults?.[step.agent];
+		const { type: agentType, explicit } = resolveAgentType(agentConfig, step.type);
+		const typeLabel = explicit ? agentType : `${agentType} (inferred)`;
+
+		console.log(`  ${i + 1}. ${step.agent} [${typeLabel}] - ${modeDesc}${argsDesc}`);
 
 		// Resolve and display prompt for this step
 		try {
@@ -392,7 +400,7 @@ async function main() {
 		});
 
 		// Print summary
-		printSummary(result, steps);
+		printSummary(result, steps, agentDefaults);
 
 		// Exit with appropriate code
 		if (result.success) {

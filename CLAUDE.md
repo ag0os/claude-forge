@@ -142,9 +142,43 @@ At each level, inline `prompt` beats `promptFile`. See [docs/ORCHESTRA.md](docs/
 
 Agents participating in orchestra loops must output `ORCHESTRA_COMPLETE` on its own line when done. The orchestrator watches stdout and stops looping when it sees this marker.
 
+### Agent Execution Types
+
+Each agent has an execution type that determines how it runs:
+
+| Type | Description |
+|------|-------------|
+| `"direct"` | Spawned via runtime abstraction (claude-cli, codex-cli, codex-sdk) using a system prompt |
+| `"binary"` | Spawned as a compiled binary subprocess from `agents/` |
+
+The type can be set explicitly via `"type"` in agent config or chain step config, or inferred automatically (agents with `systemPrompt`/`systemPromptText` are `"direct"`, otherwise `"binary"`).
+
+**Priority:** step-level `type` > agent-level `type` > inferred from config.
+
+Use `--dry-run` to see the resolved type for each step:
+```
+orchestra --chain build-all --dry-run
+  1. planner [direct] - loop up to 3 iterations
+  2. builder [direct] - loop up to 20 iterations
+```
+
+**Step-level type override** (useful for testing different modes):
+```json
+{
+  "chains": {
+    "test-mix": {
+      "steps": [
+        { "agent": "planner", "iterations": 3, "type": "direct" },
+        { "agent": "my-agent", "iterations": 5, "type": "binary" }
+      ]
+    }
+  }
+}
+```
+
 ### Direct Spawn Agents
 
-Direct spawn agents are defined entirely in `forge/orch/chains.json` via `systemPrompt` instead of compiled binaries. These agents are spawned by orchestra directly using `claude` CLI with the specified system prompt.
+Direct spawn agents are defined entirely in `forge/orch/chains.json` via `type: "direct"` and `systemPrompt` instead of compiled binaries. These agents are spawned by orchestra directly using `claude` CLI with the specified system prompt.
 
 **Built-in direct spawn agents:**
 - `planner` - Creates tasks from `forge/orch/specs/` requirements (read-only tools)
@@ -155,6 +189,7 @@ Direct spawn agents are defined entirely in `forge/orch/chains.json` via `system
 {
   "agents": {
     "planner": {
+      "type": "direct",
       "systemPrompt": "forge/orch/prompts/planner.md",
       "model": "sonnet",
       "allowedTools": ["Read", "Grep", "Glob", "Bash"]

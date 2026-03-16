@@ -20,6 +20,9 @@ export {
 	loadConfig,
 	getChain,
 	substituteVars,
+	resolveAgentType,
+	isDirectSpawnAgent,
+	type AgentType,
 	type ChainConfig,
 	type OrchestraConfig,
 } from "./config";

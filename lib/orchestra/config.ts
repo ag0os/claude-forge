@@ -28,6 +28,8 @@ export interface ChainStep {
 	prompt?: string;
 	/** Path to a file containing the prompt */
 	promptFile?: string;
+	/** Override the agent's execution type for this step */
+	type?: AgentType;
 }
 
 /**
@@ -48,9 +50,22 @@ export interface ChainConfig {
 export type AgentModel = "sonnet" | "opus" | "haiku";
 
 /**
+ * Agent execution type
+ *
+ * - "direct": Spawned via runtime abstraction (claude-cli, codex-cli, etc.) using system prompt
+ * - "binary": Spawned as a compiled binary subprocess
+ *
+ * When omitted, type is inferred: agents with systemPrompt/systemPromptText are "direct",
+ * otherwise "binary".
+ */
+export type AgentType = "direct" | "binary";
+
+/**
  * Configuration for a specific agent's defaults
  */
 export interface AgentConfig {
+	/** Explicit execution type: "direct" (runtime abstraction) or "binary" (compiled binary) */
+	type?: AgentType;
 	/** Default inline prompt text for this agent */
 	defaultPrompt?: string;
 	/** Default path to a file containing the prompt for this agent */
@@ -81,15 +96,51 @@ export interface AgentConfig {
 /**
  * Check if an agent config is configured for direct Claude spawning.
  *
- * An agent is considered a direct spawn agent if it has either:
- * - systemPrompt: path to a system prompt file
- * - systemPromptText: inline system prompt text
+ * Resolution order:
+ * 1. Explicit `type` field on agent config (if set)
+ * 2. Inferred from systemPrompt/systemPromptText presence
  *
  * @param agent - The agent configuration to check
+ * @param stepType - Optional step-level type override (takes highest priority)
  * @returns true if the agent should spawn Claude directly
  */
-export function isDirectSpawnAgent(agent: AgentConfig): boolean {
+export function isDirectSpawnAgent(agent: AgentConfig, stepType?: AgentType): boolean {
+	// Step-level override takes highest priority
+	if (stepType !== undefined) {
+		return stepType === "direct";
+	}
+	// Explicit type on agent config
+	if (agent.type !== undefined) {
+		return agent.type === "direct";
+	}
+	// Fallback: infer from systemPrompt presence
 	return agent.systemPrompt !== undefined || agent.systemPromptText !== undefined;
+}
+
+/**
+ * Resolve the effective agent type for display and logging.
+ *
+ * @param agent - The agent configuration (may be undefined for binary-only agents)
+ * @param stepType - Optional step-level type override
+ * @returns The resolved agent type and whether it was explicitly set
+ */
+export function resolveAgentType(
+	agent?: AgentConfig,
+	stepType?: AgentType
+): { type: AgentType; explicit: boolean } {
+	// Step-level override
+	if (stepType !== undefined) {
+		return { type: stepType, explicit: true };
+	}
+	// Agent-level explicit type
+	if (agent?.type !== undefined) {
+		return { type: agent.type, explicit: true };
+	}
+	// Inferred
+	if (agent && (agent.systemPrompt !== undefined || agent.systemPromptText !== undefined)) {
+		return { type: "direct", explicit: false };
+	}
+	return { type: "binary", explicit: false };
 }
 
 /**
@@ -328,6 +379,11 @@ function validateAndTransformConfig(
 const VALID_MODELS: AgentModel[] = ["sonnet", "opus", "haiku"];
 
 /**
+ * Valid agent type values for validation
+ */
+const VALID_AGENT_TYPES: AgentType[] = ["direct", "binary"];
+
+/**
  * Valid backend values for validation
  */
 const VALID_BACKENDS: RuntimeBackend[] = ["claude-cli", "codex-cli", "codex-sdk"];
@@ -354,6 +410,18 @@ function validateAndTransformAgent(
 
 	const agent = rawAgent as Record<string, unknown>;
 	const prefix = `Invalid config schema at ${configPath}: agent '${agentName}'`;
+
+	// Validate type if present
+	if ("type" in agent && agent.type !== undefined) {
+		if (typeof agent.type !== "string") {
+			throw new Error(`${prefix} type must be a string`);
+		}
+		if (!VALID_AGENT_TYPES.includes(agent.type as AgentType)) {
+			throw new Error(
+				`${prefix} type must be one of: ${VALID_AGENT_TYPES.join(", ")}`
+			);
+		}
+	}
 
 	// Validate defaultPrompt if present
 	if (
@@ -468,6 +536,7 @@ function validateAndTransformAgent(
 	}
 
 	return {
+		type: agent.type as AgentType | undefined,
 		defaultPrompt: agent.defaultPrompt as string | undefined,
 		defaultPromptFile: agent.defaultPromptFile as string | undefined,
 		systemPrompt: agent.systemPrompt as string | undefined,
@@ -673,6 +742,20 @@ function validateAndTransformStep(
 		);
 	}
 
+	// Validate type if present (step-level override)
+	if ("type" in step && step.type !== undefined) {
+		if (typeof step.type !== "string") {
+			throw new Error(
+				`Invalid config schema at ${configPath}: ${stepDesc} 'type' must be a string`
+			);
+		}
+		if (!VALID_AGENT_TYPES.includes(step.type as AgentType)) {
+			throw new Error(
+				`Invalid config schema at ${configPath}: ${stepDesc} 'type' must be one of: ${VALID_AGENT_TYPES.join(", ")}`
+			);
+		}
+	}
+
 	return {
 		agent: step.agent,
 		iterations,
@@ -680,6 +763,7 @@ function validateAndTransformStep(
 		args,
 		prompt: step.prompt as string | undefined,
 		promptFile: step.promptFile as string | undefined,
+		type: step.type as AgentType | undefined,
 	};
 }
 

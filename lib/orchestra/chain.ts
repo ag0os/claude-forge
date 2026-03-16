@@ -8,7 +8,7 @@
 
 import { run, type RunResult } from "./runner";
 import { resolvePrompt } from "./prompt";
-import type { ChainStep, ChainConfig, AgentConfig } from "./config";
+import { resolveAgentType, type ChainStep, type ChainConfig, type AgentConfig } from "./config";
 
 /**
  * Result from a single step in the chain
@@ -129,8 +129,9 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 			}
 
 			if (verbose) {
+				const { type: agentType } = resolveAgentType(agentDefaults?.[step.agent], step.type);
 				console.log(
-					`\n[orchestra] Step ${i + 1}/${steps.length}: ${step.agent}${step.loop ? `:${step.iterations}` : ""}`
+					`\n[orchestra] Step ${i + 1}/${steps.length}: ${step.agent} [${agentType}]${step.loop ? `:${step.iterations}` : ""}`
 				);
 			}
 
@@ -168,6 +169,7 @@ export async function executeChain(options: ChainOptions): Promise<ChainResult> 
 				verbose,
 				prompt: resolvedPrompt,
 				agentConfig,
+				stepType: step.type,
 			});
 
 			stepResults.push({
