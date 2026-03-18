@@ -231,7 +231,7 @@ describe("serializeTask", () => {
 			// Note: AC markers are placed between the last content section and Implementation Notes.
 			// The parser's extractSection captures until next ## header, so the preceding section
 			// will include AC markers. Test without AC for clean round-trip.
-			const original: Task = {
+			const original = {
 				id: "TASK-042",
 				title: "Round Trip Test",
 				status: "In Progress",
@@ -246,7 +246,7 @@ describe("serializeTask", () => {
 				implementationPlan: "1. Do this\n2. Do that",
 				implementationNotes: "Some notes here.",
 				acceptanceCriteria: [],
-			};
+			} satisfies Task;
 
 			const serialized = serializeTask(original);
 			const parsed = parseTask(serialized);
@@ -254,13 +254,13 @@ describe("serializeTask", () => {
 			expect(parsed.id).toBe(original.id);
 			expect(parsed.title).toBe(original.title);
 			expect(parsed.status).toBe(original.status);
-			expect(parsed.priority).toBe(original.priority!);
-			expect(parsed.assignee).toBe(original.assignee!);
+			expect(parsed.priority).toBe(original.priority);
+			expect(parsed.assignee).toBe(original.assignee);
 			expect(parsed.labels).toEqual(original.labels);
 			expect(parsed.dependencies).toEqual(original.dependencies);
-			expect(parsed.description).toBe(original.description!);
-			expect(parsed.implementationPlan).toBe(original.implementationPlan!);
-			expect(parsed.implementationNotes).toBe(original.implementationNotes!);
+			expect(parsed.description).toBe(original.description);
+			expect(parsed.implementationPlan).toBe(original.implementationPlan);
+			expect(parsed.implementationNotes).toBe(original.implementationNotes);
 		});
 
 		test("parse(serialize(task)) preserves acceptance criteria", () => {
