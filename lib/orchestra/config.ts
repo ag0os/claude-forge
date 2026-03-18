@@ -94,6 +94,18 @@ export interface AgentConfig {
 }
 
 /**
+ * Check whether an agent has a configured system prompt for direct execution.
+ *
+ * Empty strings are treated as configured values; only undefined means absent.
+ *
+ * @param agent - The agent configuration to inspect
+ * @returns true when either systemPrompt or systemPromptText is configured
+ */
+export function hasDirectSystemPrompt(agent: AgentConfig): boolean {
+	return agent.systemPrompt !== undefined || agent.systemPromptText !== undefined;
+}
+
+/**
  * Check if an agent config is configured for direct Claude spawning.
  *
  * Resolution order:
@@ -114,7 +126,37 @@ export function isDirectSpawnAgent(agent: AgentConfig, stepType?: AgentType): bo
 		return agent.type === "direct";
 	}
 	// Fallback: infer from systemPrompt presence
-	return agent.systemPrompt !== undefined || agent.systemPromptText !== undefined;
+	return hasDirectSystemPrompt(agent);
+}
+
+function validateDirectStepOverrides(
+	chains: Record<string, ChainConfig>,
+	agents: Record<string, AgentConfig> | undefined,
+	configPath: string
+): void {
+	for (const [chainName, chain] of Object.entries(chains)) {
+		for (let stepIndex = 0; stepIndex < chain.steps.length; stepIndex++) {
+			const step = chain.steps[stepIndex];
+			if (!step || step.type !== "direct") {
+				continue;
+			}
+
+			const agent = agents?.[step.agent];
+			const stepDesc = `chain '${chainName}' step ${stepIndex + 1}`;
+
+			if (!agent) {
+				throw new Error(
+					`Invalid config schema at ${configPath}: ${stepDesc} cannot use type 'direct' because agent '${step.agent}' has no config`
+				);
+			}
+
+			if (!hasDirectSystemPrompt(agent)) {
+				throw new Error(
+					`Invalid config schema at ${configPath}: ${stepDesc} cannot use type 'direct' because agent '${step.agent}' has no systemPrompt or systemPromptText`
+				);
+			}
+		}
+	}
 }
 
 /**
@@ -137,7 +179,7 @@ export function resolveAgentType(
 		return { type: agent.type, explicit: true };
 	}
 	// Inferred
-	if (agent && (agent.systemPrompt !== undefined || agent.systemPromptText !== undefined)) {
+	if (agent && hasDirectSystemPrompt(agent)) {
 		return { type: "direct", explicit: false };
 	}
 	return { type: "binary", explicit: false };
@@ -370,6 +412,8 @@ function validateAndTransformConfig(
 		}
 	}
 
+	validateDirectStepOverrides(chains, agents, configPath);
+
 	return { chains, agents };
 }
 
@@ -533,6 +577,12 @@ function validateAndTransformAgent(
 				`${prefix} backend must be one of: ${VALID_BACKENDS.join(", ")}`
 			);
 		}
+	}
+
+	if (agent.type === "direct" && !hasDirectSystemPrompt(agent as AgentConfig)) {
+		throw new Error(
+			`${prefix} type 'direct' requires systemPrompt or systemPromptText`
+		);
 	}
 
 	return {

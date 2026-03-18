@@ -293,7 +293,40 @@ describe("config schema validation", () => {
 				expect(agent?.disallowedTools).toEqual(["Bash"]);
 			});
 
+			test("accepts explicit direct type when a system prompt is configured", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							type: "direct",
+							systemPromptText: "You are a helpful assistant.",
+						},
+					},
+				});
+
+				const config = await loadConfig(tmpDir);
+				expect(config?.agents?.["my-agent"]?.type).toBe("direct");
+				expect(config?.agents?.["my-agent"]?.systemPromptText).toBe(
+					"You are a helpful assistant."
+				);
+			});
+
 			// Validation rejection tests
+			test("rejects explicit direct type without a system prompt", async () => {
+				writeConfig({
+					chains: {},
+					agents: {
+						"my-agent": {
+							type: "direct",
+						},
+					},
+				});
+
+				await expect(loadConfig(tmpDir)).rejects.toThrow(
+					"agent 'my-agent' type 'direct' requires systemPrompt or systemPromptText"
+				);
+			});
+
 			test("rejects non-string systemPrompt", async () => {
 				writeConfig({
 					chains: {},
@@ -698,6 +731,72 @@ describe("config schema validation", () => {
 			const step = config?.chains["test-chain"]?.steps[0];
 			expect(step?.prompt).toBe("Inline prompt");
 			expect(step?.promptFile).toBe("prompts/file.md");
+		});
+
+		test("accepts step type direct when the agent has a system prompt", async () => {
+			writeConfig({
+				chains: {
+					"test-chain": {
+						steps: [
+							{
+								agent: "my-agent",
+								type: "direct",
+							},
+						],
+					},
+				},
+				agents: {
+					"my-agent": {
+						systemPromptText: "You are a helpful assistant.",
+					},
+				},
+			});
+
+			const config = await loadConfig(tmpDir);
+			expect(config?.chains["test-chain"]?.steps[0]?.type).toBe("direct");
+		});
+
+		test("rejects step type direct when the agent has no config", async () => {
+			writeConfig({
+				chains: {
+					"test-chain": {
+						steps: [
+							{
+								agent: "missing-agent",
+								type: "direct",
+							},
+						],
+					},
+				},
+			});
+
+			await expect(loadConfig(tmpDir)).rejects.toThrow(
+				"chain 'test-chain' step 1 cannot use type 'direct' because agent 'missing-agent' has no config"
+			);
+		});
+
+		test("rejects step type direct when the agent has no system prompt", async () => {
+			writeConfig({
+				chains: {
+					"test-chain": {
+						steps: [
+							{
+								agent: "my-agent",
+								type: "direct",
+							},
+						],
+					},
+				},
+				agents: {
+					"my-agent": {
+						defaultPrompt: "Default prompt",
+					},
+				},
+			});
+
+			await expect(loadConfig(tmpDir)).rejects.toThrow(
+				"chain 'test-chain' step 1 cannot use type 'direct' because agent 'my-agent' has no systemPrompt or systemPromptText"
+			);
 		});
 	});
 });

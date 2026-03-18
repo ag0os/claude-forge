@@ -12,7 +12,12 @@
 import { spawn, type Subprocess } from "bun";
 import { isAbsolute, join } from "node:path";
 
-import { isDirectSpawnAgent, type AgentConfig, type AgentType } from "./config";
+import {
+	hasDirectSystemPrompt,
+	isDirectSpawnAgent,
+	type AgentConfig,
+	type AgentType,
+} from "./config";
 import { COMPLETION_MARKER } from "./constants";
 import { composeSystemPrompt, loadAgentSystemPrompt } from "./mode-awareness";
 import { getRuntime } from "../runtime";
@@ -78,10 +83,38 @@ export interface RunOptions {
  * @returns RunResult with completion status and metadata
  */
 export async function run(options: RunOptions): Promise<RunResult> {
-	const { agentConfig, stepType } = options;
+	const { agent, agentConfig, stepType } = options;
+	const shouldRunDirect =
+		agentConfig !== undefined && isDirectSpawnAgent(agentConfig, stepType);
+
+	if (stepType === "direct") {
+		if (!agentConfig) {
+			console.error(
+				`[orchestra] Step requested direct execution for '${agent}', but no agent config was found`
+			);
+			return {
+				complete: false,
+				iterations: 0,
+				exitCode: 1,
+				reason: "error",
+			};
+		}
+	}
+
+	if (shouldRunDirect && !hasDirectSystemPrompt(agentConfig)) {
+		console.error(
+			`[orchestra] Direct execution for '${agent}' requires systemPrompt or systemPromptText`
+		);
+		return {
+			complete: false,
+			iterations: 0,
+			exitCode: 1,
+			reason: "error",
+		};
+	}
 
 	// Dispatch to the appropriate runner based on explicit type or agent configuration
-	if (agentConfig && isDirectSpawnAgent(agentConfig, stepType)) {
+	if (shouldRunDirect) {
 		return runDirect(options);
 	}
 

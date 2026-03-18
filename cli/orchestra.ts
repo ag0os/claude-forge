@@ -23,13 +23,14 @@ import { type ChainResult, executeChain } from "../lib/orchestra/chain";
 import {
 	type AgentConfig,
 	type ChainConfig,
+	type ChainStep,
 	getChain,
 	loadConfig,
 	resolveAgentType,
 	substituteVars,
 	substituteVarsInChain,
 } from "../lib/orchestra/config";
-import { type ChainStep, parseDSL } from "../lib/orchestra/parser";
+import { parseDSL } from "../lib/orchestra/parser";
 import { resolvePrompt } from "../lib/orchestra/prompt";
 
 // Exit codes

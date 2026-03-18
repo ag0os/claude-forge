@@ -236,6 +236,20 @@ describe("runner", () => {
 			expect(result.reason).toBe("single_run");
 		});
 
+		test("rejects direct step override when no agentConfig is provided", async () => {
+			const result = await run({
+				agent: testAgentPath,
+				maxIterations: 1,
+				loop: false,
+				stepType: "direct",
+			});
+
+			expect(result.exitCode).toBe(1);
+			expect(result.reason).toBe("error");
+			expect(result.complete).toBe(false);
+			expect(result.iterations).toBe(0);
+		});
+
 		test("dispatches to runBinary when agentConfig has no systemPrompt fields", async () => {
 			// When agentConfig exists but no systemPrompt/systemPromptText, use binary
 			const agentConfig: AgentConfig = {
@@ -253,6 +267,26 @@ describe("runner", () => {
 			// Should succeed with binary agent
 			expect(result.exitCode).toBe(0);
 			expect(result.reason).toBe("single_run");
+		});
+
+		test("rejects direct step override when agentConfig has no systemPrompt fields", async () => {
+			const agentConfig: AgentConfig = {
+				defaultPrompt: "Default prompt",
+				model: "sonnet",
+			};
+
+			const result = await run({
+				agent: testAgentPath,
+				maxIterations: 1,
+				loop: false,
+				agentConfig,
+				stepType: "direct",
+			});
+
+			expect(result.exitCode).toBe(1);
+			expect(result.reason).toBe("error");
+			expect(result.complete).toBe(false);
+			expect(result.iterations).toBe(0);
 		});
 
 		test("runBinary passes prompt to binary agent", async () => {
