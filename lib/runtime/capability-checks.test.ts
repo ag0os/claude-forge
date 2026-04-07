@@ -388,12 +388,12 @@ describe("Runtime Capabilities", () => {
 		const runtime = getRuntime("codex-cli");
 		const caps = runtime.capabilities();
 
-		expect(caps.supportsMcp).toBe(false);
+		expect(caps.supportsMcp).toBe(true);
 		expect(caps.supportsTools).toBe(false);
 		expect(caps.supportsModel).toBe(true);
 		expect(caps.supportsMaxTurns).toBe(false);
 		expect(caps.supportsInteractive).toBe(true);
 		expect(caps.supportsStreaming).toBe(true);
-		expect(caps.supportsSystemPrompt).toBe(false);
+		expect(caps.supportsSystemPrompt).toBe(true);
 	});
 });

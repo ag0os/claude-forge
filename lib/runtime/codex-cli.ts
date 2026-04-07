@@ -5,15 +5,18 @@
  * This backend maps print mode to `codex exec "<prompt>"` and interactive
  * mode to `codex` with inherited stdio.
  *
+ * Uses `--config` flags for native system prompt and MCP support:
+ * - System prompts via `--config 'base_instructions=...'`
+ * - MCP servers via `--config 'mcp_servers.<name>={...}'`
+ *
  * Key differences from Claude CLI:
- * - No native system prompt support: system prompt is prepended to user prompt
- * - No --mcp-config support: MCP must be preconfigured externally
  * - No --max-turns equivalent: limited max turns support
- * - No tool allow/deny lists: limited tool configuration
+ * - No tool allow/deny lists: only coarse --disable/--enable for built-in tools
  *
  * @module lib/runtime/codex-cli
  */
 
+import { readFileSync } from "node:fs";
 import { spawn, type Subprocess } from "bun";
 import { $ } from "bun";
 
@@ -28,10 +31,19 @@ import type {
 } from "./types";
 
 /**
+ * Escape a string for use in a TOML inline value
+ *
+ * Escapes backslashes and double quotes to prevent TOML parsing issues.
+ */
+function escapeTomlString(value: string): string {
+	return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+/**
  * Codex CLI runtime backend
  *
  * Provides agent execution via the Codex CLI (codex command).
- * Supports limited features compared to Claude CLI due to Codex CLI constraints.
+ * Supports system prompts and MCP via `--config` flags.
  *
  * @example
  * ```ts
@@ -85,23 +97,22 @@ export class CodexCliRuntime implements AgentRuntime {
 	/**
 	 * Get the capabilities of Codex CLI runtime
 	 *
-	 * Codex CLI has limited capabilities compared to Claude CLI:
-	 * - No MCP config support (requires preconfigured MCP)
-	 * - Limited tool configuration
+	 * Codex CLI supports system prompts and MCP via `--config` flags.
+	 * Remaining limitations:
+	 * - No fine-grained tool allow/deny lists (only --disable/--enable for built-in tools)
 	 * - No native max turns support
-	 * - System prompt support via prepending (limited)
 	 *
-	 * @returns Capability set with limited features
+	 * @returns Capability set for Codex CLI
 	 */
 	capabilities(): RuntimeCapabilities {
 		return {
-			supportsMcp: false, // MCP must be preconfigured, no --mcp-config flag
-			supportsTools: false, // No tool allow/deny lists
-			supportsModel: true, // Codex supports model selection
+			supportsMcp: true, // Via --config 'mcp_servers.<name>={...}'
+			supportsTools: false, // No fine-grained allow/deny lists
+			supportsModel: true, // Via --model flag
 			supportsMaxTurns: false, // No --max-turns equivalent
 			supportsInteractive: true, // Supports interactive mode
 			supportsStreaming: true, // Supports stdout streaming
-			supportsSystemPrompt: false, // No native support, but we prepend to prompt
+			supportsSystemPrompt: true, // Via --config 'base_instructions=...'
 		};
 	}
 
@@ -265,37 +276,41 @@ export class CodexCliRuntime implements AgentRuntime {
 	}
 
 	/**
-	 * Build the full prompt by prepending system prompt if provided
+	 * Extract the user prompt from run options
 	 *
-	 * Codex CLI does not have native system prompt support, so we prepend
-	 * the system prompt to the user prompt with a separator.
+	 * System prompts are now handled natively via `--config 'base_instructions=...'`
+	 * in the arg builders, so this method only returns the user prompt.
 	 *
 	 * @param options - Run configuration
-	 * @returns The combined prompt string
+	 * @returns The user prompt string
 	 */
 	private buildPrompt(options: RunOptions | Omit<RunOptions, "mode">): string {
-		const runOptions = options as RunOptions;
-		const prompt = runOptions.prompt ?? "";
-		if (runOptions.systemPrompt) {
-			if (prompt.length > 0) {
-				return `${runOptions.systemPrompt}\n\n---\n\n${prompt}`;
-			}
-			return runOptions.systemPrompt;
-		}
-		return prompt;
+		return (options as RunOptions).prompt ?? "";
 	}
 
 	/**
 	 * Build CLI arguments for `codex exec` mode
 	 *
 	 * The exec command runs a prompt non-interactively.
+	 * System prompts and MCP config are passed via `--config` flags.
+	 * Exec mode defaults to `approval_policy=never`, so skipPermissions is a no-op.
 	 *
 	 * @param options - Run configuration
-	 * @param prompt - The full prompt (with system prompt prepended if applicable)
+	 * @param prompt - The user prompt
 	 * @returns Array of CLI arguments
 	 */
 	private buildExecArgs(options: RunOptions, prompt: string): string[] {
 		const args: string[] = ["exec"];
+
+		// Add system prompt via native --config flag
+		if (options.systemPrompt) {
+			args.push(...this.buildSystemPromptArgs(options.systemPrompt));
+		}
+
+		// Add MCP servers via --config flags
+		if (options.mcpConfig) {
+			args.push(...this.buildMcpArgs(options.mcpConfig));
+		}
 
 		// Add model if specified
 		if (options.model) {
@@ -307,9 +322,13 @@ export class CodexCliRuntime implements AgentRuntime {
 			args.push(...options.rawArgs);
 		}
 
+		// codex exec requires a positional prompt; without one it reads from stdin,
+		// but we start with stdin: "ignore" so the process would exit immediately.
+		// When only a system prompt is provided, pass a minimal prompt so codex runs.
 		if (prompt.length > 0) {
-			// Use -- to avoid prompt being parsed as a flag
 			args.push("--", prompt);
+		} else if (options.systemPrompt) {
+			args.push("--", "Follow the instructions in your system prompt.");
 		}
 
 		return args;
@@ -318,15 +337,35 @@ export class CodexCliRuntime implements AgentRuntime {
 	/**
 	 * Build CLI arguments for interactive mode
 	 *
+	 * System prompts and MCP config are passed via `--config` flags.
+	 * Skip permissions maps to `--full-auto` in interactive mode.
+	 *
 	 * @param options - Run configuration
-	 * @param prompt - The full prompt (with system prompt prepended if applicable)
+	 * @param prompt - The user prompt
 	 * @returns Array of CLI arguments
 	 */
 	private buildInteractiveArgs(
 		options: Omit<RunOptions, "mode">,
 		prompt: string
 	): string[] {
+		const runOptions = options as RunOptions;
 		const args: string[] = [];
+
+		// Add system prompt via native --config flag
+		if (runOptions.systemPrompt) {
+			args.push(...this.buildSystemPromptArgs(runOptions.systemPrompt));
+		}
+
+		// Add MCP servers via --config flags
+		if (runOptions.mcpConfig) {
+			args.push(...this.buildMcpArgs(runOptions.mcpConfig));
+		}
+
+		// Skip permissions bypasses all approvals and sandboxing, matching
+		// Claude's --dangerously-skip-permissions behavior
+		if (runOptions.skipPermissions) {
+			args.push("--dangerously-bypass-approvals-and-sandbox");
+		}
 
 		// Add model if specified
 		if (options.model) {
@@ -354,16 +393,10 @@ export class CodexCliRuntime implements AgentRuntime {
 	 * @param options - Run configuration to check
 	 */
 	private warnUnsupportedOptions(options: RunOptions): void {
-		if (options.mcpConfig) {
-			console.warn(
-				"[codex-cli] Warning: --mcp-config is not supported by Codex CLI. " +
-					"MCP servers must be preconfigured externally."
-			);
-		}
-
 		if (options.tools?.allowed || options.tools?.disallowed) {
 			console.warn(
-				"[codex-cli] Warning: Tool allow/deny lists are not supported by Codex CLI."
+				"[codex-cli] Warning: Tool allow/deny lists are not supported by Codex CLI. " +
+					"Use --disable/--enable for built-in tool categories via rawArgs."
 			);
 		}
 
@@ -375,15 +408,84 @@ export class CodexCliRuntime implements AgentRuntime {
 
 		if (options.settings) {
 			console.warn(
-				"[codex-cli] Warning: --settings is not supported by Codex CLI."
+				"[codex-cli] Warning: --settings is not directly supported by Codex CLI. " +
+					"Use --profile or --config as alternatives via rawArgs."
 			);
+		}
+	}
+
+	/**
+	 * Build `--config 'base_instructions=...'` args for native system prompt support
+	 *
+	 * @param systemPrompt - The system prompt text
+	 * @returns Array of CLI arguments
+	 */
+	private buildSystemPromptArgs(systemPrompt: string): string[] {
+		return ["--config", `base_instructions=${systemPrompt}`];
+	}
+
+	/**
+	 * Build `--config 'mcp_servers.<name>={...}'` args from MCP config
+	 *
+	 * Accepts either inline JSON (e.g. from JSON.stringify()) or a file path.
+	 * Translates the Claude-style MCP config format (JSON with mcpServers)
+	 * into Codex `--config` flags using TOML inline table syntax.
+	 *
+	 * @param mcpConfig - Inline JSON string or path to an MCP config JSON file
+	 * @returns Array of CLI arguments
+	 */
+	private buildMcpArgs(mcpConfig: string): string[] {
+		let config: Record<string, unknown>;
+
+		// Try parsing as inline JSON first (callers like agents/tasks/worker.ts
+		// pass JSON.stringify(mcpJson) directly)
+		try {
+			config = JSON.parse(mcpConfig);
+		} catch {
+			// Not valid JSON, treat as a file path
+			let raw: string;
+			try {
+				raw = readFileSync(mcpConfig, "utf-8");
+			} catch (error) {
+				console.warn(
+					`[codex-cli] Warning: Could not read MCP config at ${mcpConfig}: ${error instanceof Error ? error.message : String(error)}`
+				);
+				return [];
+			}
+
+			try {
+				config = JSON.parse(raw);
+			} catch (error) {
+				console.warn(
+					`[codex-cli] Warning: Invalid JSON in MCP config at ${mcpConfig}: ${error instanceof Error ? error.message : String(error)}`
+				);
+				return [];
+			}
 		}
 
-		if (options.skipPermissions) {
-			console.warn(
-				"[codex-cli] Warning: --dangerously-skip-permissions is not supported by Codex CLI."
-			);
+		const servers = (config.mcpServers ?? {}) as Record<
+			string,
+			{ command: string; args?: string[]; env?: Record<string, string> }
+		>;
+		const args: string[] = [];
+
+		for (const [name, server] of Object.entries(servers)) {
+			const tomlParts: string[] = [];
+			tomlParts.push(`command = "${escapeTomlString(server.command)}"`);
+			if (server.args && server.args.length > 0) {
+				const argsStr = server.args.map((a) => `"${escapeTomlString(a)}"`).join(", ");
+				tomlParts.push(`args = [${argsStr}]`);
+			}
+			if (server.env) {
+				const envParts = Object.entries(server.env).map(
+					([k, v]) => `${k} = "${escapeTomlString(v)}"`
+				);
+				tomlParts.push(`env = {${envParts.join(", ")}}`);
+			}
+			args.push("--config", `mcp_servers.${name}={${tomlParts.join(", ")}}`);
 		}
+
+		return args;
 	}
 
 	/**
