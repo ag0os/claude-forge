@@ -46,8 +46,9 @@ The process writes its payload to stdout and exits.
   argument, or \`--url\`.
 - **Prompt** (optional): natural-language instruction describing what to pull
   from the page. Remaining positionals are joined, or \`--prompt\`.
-- **--raw**: return the page's main text verbatim with light whitespace
-  normalization. Overrides the prompt's summarization behavior.
+- **--raw**: best-effort raw page text. HTML is still converted to markdown by
+  Claude Code's WebFetch path, and some pages may still be truncated or
+  summarized.
 - **--model <name>**: Claude model (default \`haiku\`). Use \`sonnet\` or
   \`opus\` for denser extraction from complex pages.
 - **--max-turns <n>**: turn cap for the underlying agent (default 3).
@@ -66,7 +67,17 @@ The process writes its payload to stdout and exits.
 - **Extraction**: \`"list the CLI flags"\`, \`"extract the pricing table"\`,
   \`"give me the API endpoints"\` — returns only the extracted items.
 - **Q&A**: \`"does this library support streaming?"\` — direct answer.
-- **Raw**: \`--raw\` or prompts like \`"give me the raw text"\`.
+- **Raw**: \`--raw\` or prompts like \`"give me the raw text"\`. Best effort
+  only; not a byte-for-byte dump.
+
+## Prompting Tips
+
+- Ask for one narrow thing: a table, flag list, answer, section, or code
+  example.
+- Prefer extraction prompts over "summarize everything on this site".
+- If you need a direct answer, ask the question explicitly.
+- If the page is likely authenticated, private, or GitHub-native, prefer a
+  specialized tool instead of WebFetch.
 
 ## Examples
 
@@ -78,8 +89,13 @@ The process writes its payload to stdout and exits.
 ## Limitations
 
 - Follows one URL per call. Loop externally for multiple URLs.
+- Under the hood, Claude Code's WebFetch usually fetches the page, converts
+  HTML to markdown, and applies a small model to the result.
 - Cannot execute JavaScript. Pages requiring JS rendering return \`ERROR:\`.
 - Respects robots / paywalls; blocked fetches return \`ERROR:\`.
+- Authenticated or private URLs often fail; GitHub URLs are usually better via
+  \`gh\`.
+- Cross-host redirects may require a second fetch to the redirect target.
 - No caching between calls. Repeated fetches re-hit the origin.
 - Only the \`WebFetch\` tool is permitted in the inner agent — no file IO,
   no shell, no search.
@@ -205,14 +221,14 @@ export function buildTaskPrompt({
 	userPrompt,
 }: WebfetchRunArgs): string {
 	if (raw) {
-		return `Call WebFetch on this URL and return the page's main textual content as close to verbatim as possible, stripping only navigation, cookie banners, and footers. No summary, no commentary.\n\nURL: ${url}`;
+		return `Call WebFetch on this URL and return the closest available raw page text with no commentary. Treat this as best-effort raw text: the underlying tool may convert HTML to markdown, truncate large pages, or summarize some content. If WebFetch reports a redirect to a different host, call WebFetch once more with the redirect URL. If the page is authenticated, private, blocked, or unavailable, return a single ERROR line instead of guessing.\n\nURL: ${url}`;
 	}
 
 	if (userPrompt) {
-		return `Call WebFetch on this URL, then satisfy the caller's request below using the fetched content.\n\nURL: ${url}\n\nCaller request:\n${userPrompt}`;
+		return `Call WebFetch on this URL using a narrow extraction-oriented prompt that matches the caller's request. If WebFetch reports a redirect to a different host, call WebFetch once more with the redirect URL and the same intent. If the page is authenticated, private, blocked, clearly truncated, or otherwise insufficient to answer reliably, return ERROR or UNKNOWN rather than guessing.\n\nURL: ${url}\n\nCaller request:\n${userPrompt}`;
 	}
 
-	return `Call WebFetch on this URL and emit a concise factual summary of the page's main content. No preamble.\n\nURL: ${url}`;
+	return `Call WebFetch on this URL and emit a concise factual summary of the page's main content. If WebFetch reports a redirect to a different host, call WebFetch once more with the redirect URL. If the page is authenticated, private, blocked, or unavailable, return a single ERROR line. No preamble.\n\nURL: ${url}`;
 }
 
 function startsWithError(stdout: string | undefined): boolean {
