@@ -12,6 +12,7 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `bun install` - Install dependencies
 - `bun run index.ts` - Run the main entry point
 - `bun compile <file>` - Compile TypeScript file to binary in ./bin/
+- `bun run compile:all` - Rebuild every agent and prune orphaned binaries (`--dry-run`, `--no-prune`)
 - `bun watch` - Watch and auto-compile agents directory
 - `bun lint` - Format and fix code with Biome
 - `bun format` - Format code with Biome

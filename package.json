@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "compile": "bun scripts/compile.ts",
+    "compile:all": "bun scripts/compile-all.ts",
     "compile:forge-tasks": "bun build forge-tasks/cli/index.ts --compile --outfile bin/forge-tasks",
     "compile:orchestra": "bun build cli/orchestra.ts --compile --outfile bin/orchestra",
     "compile:parallel": "bun build cli/parallel.ts --compile --outfile bin/parallel",
