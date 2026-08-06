@@ -29,6 +29,10 @@ const args = parseArgs({
 	options: {
 		backend: { type: "string" },
 		print: { type: "boolean" },
+		// Forge-level, not a Claude CLI flag. Declared so it parses as a string
+		// under strict:false, where undeclared options would become booleans and
+		// leak their value into positionals.
+		cwd: { type: "string" },
 	},
 })
 
@@ -51,7 +55,7 @@ function extractClaudeFlags(
 	values: Record<string, string | boolean | undefined>
 ): ClaudeFlags {
 	// Exclude forge-specific flags that shouldn't be passed to Claude CLI
-	const { backend, ...claudeFlags } = values
+	const { backend, cwd, ...claudeFlags } = values
 	return claudeFlags as ClaudeFlags
 }
 
