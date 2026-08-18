@@ -27,6 +27,10 @@
  * Each subject keeps its own state in .coach/<slug>/, so several subjects can
  * share one training root without clobbering each other.
  *
+ * Coordinator mode also composes self-gated capability modules (built-in, plus
+ * .coach/integrations/*.md read at launch) so it can act on the program rather
+ * than only describe it.
+ *
  * Usage:
  *   bun run agents/tutors/coach.ts                    # coordinator: what to train today
  *   bun run agents/tutors/coach.ts rails              # open the Rails coach
@@ -56,6 +60,9 @@ import coordinatorDoc from "../../system-prompts/coach/coordinator.md" with {
 	type: "text",
 };
 import coreDoc from "../../system-prompts/coach/core.md" with { type: "text" };
+import herdrIntegration from "../../system-prompts/coach/integrations/herdr.md" with {
+	type: "text",
+};
 import ccaCoachPack from "../../system-prompts/coach/packs/cca-coach.md" with {
 	type: "text",
 };
@@ -110,6 +117,18 @@ const BUILT_IN_PACKS: string[] = [
  * replace it.
  */
 const BASE_ALLOW = ["Read(.coach/**)", "Write(.coach/**)", "Edit(.coach/**)"];
+
+/**
+ * Capability modules for the coordinator, each self-gated by an availability
+ * check it declares itself, so the same prompt degrades cleanly wherever the
+ * capability is absent. Subject coaches don't get these — a session teaches,
+ * it doesn't coordinate.
+ *
+ * `herdr` is pre-approved so launching a staged session doesn't prompt;
+ * destructive Herdr commands are forbidden by the module instead.
+ */
+const BUILT_IN_INTEGRATIONS = [herdrIntegration];
+const COORDINATOR_ALLOW = [...BASE_ALLOW, "Bash(herdr:*)"];
 
 type Pack = {
 	slug: string;
@@ -211,6 +230,27 @@ function loadPacks(root: string): Pack[] {
 	}
 
 	return [...packs.values()].sort(bySlug);
+}
+
+/**
+ * Workspace-local capability modules, appended after the built-ins so a
+ * training root can extend or override the coordinator without a recompile.
+ */
+function loadLocalIntegrations(root: string): { name: string; body: string }[] {
+	const dir = join(root, ".coach", "integrations");
+	if (!existsSync(dir)) return [];
+	try {
+		return readdirSync(dir)
+			.filter((file) => file.endsWith(".md"))
+			.sort()
+			.map((file) => ({
+				name: file,
+				body: readFileSync(join(dir, file), "utf8"),
+			}));
+	} catch (error) {
+		console.warn(`Skipping unreadable integrations directory: ${error}`);
+		return [];
+	}
 }
 
 function studentPath(root: string): string {
@@ -384,9 +424,11 @@ async function main() {
 	}
 
 	const studentDoc = loadStudent(root);
+	const locals = pack ? [] : loadLocalIntegrations(root);
 
 	// With a subject: student + core + roster + pack. Without one: the
-	// coordinator, which plans rather than teaches and so skips the core.
+	// coordinator, which plans rather than teaches and so skips the core, but
+	// gains the capability modules that let it act on the program.
 	const systemPrompt = pack
 		? [
 				studentDoc,
@@ -398,7 +440,20 @@ async function main() {
 				studentDoc,
 				renderRoster(packs),
 				coordinatorDoc,
-				`# This training root\n\nYou are running in \`${root}\`. Scaffold into \`${join(root, ".coach")}\`. When you hand the student a launch command, append \`--cwd ${root}\` unless they will already be in that directory.\n\nThe roster is exactly \`.coach/packs/*.md\` once that directory exists: adding a subject means writing a pack file there, and retiring one means deleting it. Neither needs a recompile.`,
+				...BUILT_IN_INTEGRATIONS,
+				...locals.map((local) => local.body),
+				[
+					"# This training root",
+					"",
+					`- Root: \`${root}\``,
+					`- State: \`${join(root, ".coach")}\``,
+					`- Date: ${new Date().toISOString().slice(0, 10)}`,
+					`- Local integrations loaded: ${locals.length ? locals.map((l) => l.name).join(", ") : "none"}`,
+					"",
+					`When you hand the student a launch command, append \`--cwd ${root}\` unless they will already be in that directory.`,
+					"",
+					"The roster is exactly `.coach/packs/*.md` once that directory exists: adding a subject means writing a pack file there, and retiring one means deleting it. Neither needs a recompile.",
+				].join("\n"),
 			].join("\n\n---\n\n");
 
 	if (parsedArgs.values["show-prompt"] === true) {
@@ -410,8 +465,11 @@ async function main() {
 		permissions: {
 			defaultMode: "default",
 			// Every coach gets `.coach/` — its state directory and the student
-			// profile it is told to keep current. Packs add to that, never replace it.
-			allow: [...new Set([...BASE_ALLOW, ...(pack?.allow ?? [])])],
+			// profile it is told to keep current. Packs add to that, never replace it;
+			// the coordinator instead gets what its capability modules need.
+			allow: pack
+				? [...new Set([...BASE_ALLOW, ...pack.allow])]
+				: COORDINATOR_ALLOW,
 		},
 	};
 
