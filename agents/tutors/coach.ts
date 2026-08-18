@@ -4,30 +4,46 @@
  * COACH: one dynamic tutor, many subject packs.
  *
  * Composes a session prompt from three layers:
- *   1. student.md  — who is being coached (single source of truth)
+ *   1. student.md  — who is being coached
  *   2. core.md     — how coaching works (modes, state, debrief, pressure)
  *   3. <pack>.md   — what this subject is (stance, axis, bank, seeds)
  *
- * The roster is generated from the packs that are actually installed, so
- * adding a subject never requires editing another file.
+ * ## What lives where
  *
- * Built-in packs ship in system-prompts/coach/packs/. Local packs are picked
- * up from .coach/packs/*.md in the working directory and override built-ins
- * with the same slug.
+ * The binary carries *mechanism* plus *seeds*; a training root carries
+ * *content*. The rule that decides which: **does using the tool change this
+ * file?** If yes it must live in the root, because anything a session mutates
+ * but the binary owns goes stale silently at the next compile boundary.
+ *
+ *   - Compiled, never mutated: this code, core.md, coordinator.md.
+ *   - Compiled as a seed, then owned by the root: student.md, the packs.
+ *
+ * So `.coach/student.md` wins over the built-in scaffold, and once
+ * `.coach/packs/` exists it *is* the roster — add a subject by writing a file,
+ * retire one by deleting it. Built-ins seed a fresh root and nothing more;
+ * they are not a floor the root has to subtract from. `--init` copies the
+ * seeds in so a root can start from the full set and prune.
  *
  * Each subject keeps its own state in .coach/<slug>/, so several subjects can
- * share one project directory without clobbering each other.
+ * share one training root without clobbering each other.
  *
  * Usage:
  *   bun run agents/tutors/coach.ts                    # coordinator: what to train today
  *   bun run agents/tutors/coach.ts rails              # open the Rails coach
  *   bun run agents/tutors/coach.ts coding "ts drill"  # open with an initial message
  *   bun run agents/tutors/coach.ts --list             # print the roster and exit
+ *   bun run agents/tutors/coach.ts --init             # seed .coach/ with student + packs
  *   bun run agents/tutors/coach.ts rails --show-prompt # print composed prompt, don't spawn
  *   bun run agents/tutors/coach.ts rails --cwd ~/training  # train against a fixed root
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import {
 	buildClaudeFlags,
@@ -40,6 +56,9 @@ import coordinatorDoc from "../../system-prompts/coach/coordinator.md" with {
 	type: "text",
 };
 import coreDoc from "../../system-prompts/coach/core.md" with { type: "text" };
+import ccaCoachPack from "../../system-prompts/coach/packs/cca-coach.md" with {
+	type: "text",
+};
 import codingPack from "../../system-prompts/coach/packs/coding.md" with {
 	type: "text",
 };
@@ -47,6 +66,9 @@ import dataModelingPack from "../../system-prompts/coach/packs/data-modeling.md"
 	type: "text",
 };
 import railsPack from "../../system-prompts/coach/packs/rails.md" with {
+	type: "text",
+};
+import starPack from "../../system-prompts/coach/packs/star.md" with {
 	type: "text",
 };
 import systemDesignPack from "../../system-prompts/coach/packs/system-design.md" with {
@@ -58,28 +80,18 @@ import testingPack from "../../system-prompts/coach/packs/testing.md" with {
 import tsReactPack from "../../system-prompts/coach/packs/ts-react.md" with {
 	type: "text",
 };
-import studentDoc from "../../system-prompts/coach/student.md" with {
+import studentScaffold from "../../system-prompts/coach/student.md" with {
 	type: "text",
 };
 
-/** Coaches that live in their own binary but belong on the roster. */
-const SIBLINGS = [
-	{
-		command: "tutors:star",
-		name: "STAR / behavioral",
-		scope:
-			"Behavioral interview prep — interrogate raw experience into STAR stories",
-		session: "30–60 min · interrogate + draft + rehearse",
-	},
-	{
-		command: "tutors:cca-coach",
-		name: "CCA-F exam",
-		scope:
-			"Claude Certified Architect (Foundations) exam prep — scenario MCQs and answer strategy",
-		session: "30–60 min · quiz / teach / drill / diagnose / review",
-	},
-] as const;
-
+/**
+ * Seeds for a fresh training root — not a floor every root inherits.
+ *
+ * Subjects that run as their own binary (star, cca-coach) are packs like any
+ * other; they just carry a `command:` field instead of being launched through
+ * this one. That keeps the roster in a single place, so retiring one is a file
+ * deletion rather than a source edit and a recompile.
+ */
 const BUILT_IN_PACKS: string[] = [
 	codingPack,
 	dataModelingPack,
@@ -87,18 +99,17 @@ const BUILT_IN_PACKS: string[] = [
 	systemDesignPack,
 	testingPack,
 	tsReactPack,
+	starPack,
+	ccaCoachPack,
 ];
 
 /**
- * Tools the coordinator needs to scaffold a training root. Scoped to `.coach/`
- * so setup doesn't prompt on every file, while everything outside stays gated.
- * Subject coaches inherit only what their pack asks for.
+ * Every coach owns `.coach/`: its own state directory, and the student profile
+ * it is told to keep current. Scoped so training files never prompt while
+ * everything outside stays gated. Subject packs add to this; they never
+ * replace it.
  */
-const COORDINATOR_ALLOW = [
-	"Read(.coach/**)",
-	"Write(.coach/**)",
-	"Edit(.coach/**)",
-];
+const BASE_ALLOW = ["Read(.coach/**)", "Write(.coach/**)", "Edit(.coach/**)"];
 
 type Pack = {
 	slug: string;
@@ -106,6 +117,8 @@ type Pack = {
 	scope: string;
 	session: string;
 	allow: string[];
+	/** Set when the subject runs as its own binary rather than through this one. */
+	command?: string;
 	body: string;
 	local: boolean;
 };
@@ -138,37 +151,129 @@ function parsePack(raw: string, local: boolean): Pack | null {
 			.split(",")
 			.map((tool) => tool.trim())
 			.filter(Boolean),
+		command: meta.get("command") || undefined,
 		body: raw.slice(match[0].length).trim(),
 		local,
 	};
 }
 
-/** Built-ins first, then local packs — a local pack wins on slug collision. */
-function loadPacks(root: string): Pack[] {
-	const packs = new Map<string, Pack>();
+/** The built-in seeds, paired with the raw text `--init` needs to write out. */
+function builtInEntries(): { pack: Pack; raw: string }[] {
+	return BUILT_IN_PACKS.map((raw) => ({
+		raw,
+		pack: parsePack(raw, false),
+	})).filter((entry): entry is { pack: Pack; raw: string } =>
+		Boolean(entry.pack),
+	);
+}
 
-	for (const raw of BUILT_IN_PACKS) {
-		const pack = parsePack(raw, false);
-		if (pack) packs.set(pack.slug, pack);
+function bySlug(a: Pack, b: Pack): number {
+	return a.slug.localeCompare(b.slug);
+}
+
+function packsDir(root: string): string {
+	return join(root, ".coach", "packs");
+}
+
+/**
+ * The roster, resolved.
+ *
+ * A root that has `.coach/packs/` owns its roster outright — that directory is
+ * the whole list, so a subject is retired by deleting its file. Built-ins are
+ * only the seed for a root that has none; treating them as a permanent floor
+ * is what made retired subjects impossible to remove without a recompile.
+ */
+function loadPacks(root: string): Pack[] {
+	const localDir = packsDir(root);
+	if (!existsSync(localDir)) {
+		return builtInEntries()
+			.map((entry) => entry.pack)
+			.sort(bySlug);
 	}
 
-	const localDir = join(root, ".coach", "packs");
-	if (existsSync(localDir)) {
-		for (const file of readdirSync(localDir)) {
-			if (!file.endsWith(".md")) continue;
-			try {
-				const pack = parsePack(
-					readFileSync(join(localDir, file), "utf8"),
-					true,
-				);
-				if (pack) packs.set(pack.slug, pack);
-			} catch (error) {
-				console.warn(`Skipping unreadable pack ${file}: ${error}`);
-			}
+	const packs = new Map<string, Pack>();
+	for (const file of readdirSync(localDir)) {
+		if (!file.endsWith(".md")) continue;
+		try {
+			const pack = parsePack(readFileSync(join(localDir, file), "utf8"), true);
+			if (pack) packs.set(pack.slug, pack);
+		} catch (error) {
+			console.warn(`Skipping unreadable pack ${file}: ${error}`);
 		}
 	}
 
-	return [...packs.values()].sort((a, b) => a.slug.localeCompare(b.slug));
+	// An empty or all-unreadable directory is a half-made root, not a deliberate
+	// empty roster. Fall back rather than offering the student nothing.
+	if (packs.size === 0) {
+		return builtInEntries()
+			.map((entry) => entry.pack)
+			.sort(bySlug);
+	}
+
+	return [...packs.values()].sort(bySlug);
+}
+
+function studentPath(root: string): string {
+	return join(root, ".coach", "student.md");
+}
+
+/**
+ * The student profile is the one document a session is expected to rewrite, so
+ * the root's copy always wins and the compiled one is only a scaffold. The
+ * provenance line matters as much as the text: without a path, a coach told to
+ * "update this file" has no file to update.
+ */
+function loadStudent(root: string): string {
+	const path = studentPath(root);
+	let doc = studentScaffold;
+	let local = false;
+
+	if (existsSync(path)) {
+		try {
+			doc = readFileSync(path, "utf8");
+			local = true;
+		} catch (error) {
+			console.warn(`Falling back to the built-in student scaffold: ${error}`);
+		}
+	}
+
+	const provenance = local
+		? `_This profile is \`.coach/student.md\` in the training root. When the student corrects anything in it, edit that file — it is authoritative, and this text is only a copy of it._`
+		: `_No \`.coach/student.md\` exists in this training root yet, so this is the built-in scaffold. Treat it as a starting guess, write it to \`.coach/student.md\` once it is right, and edit that file from then on._`;
+
+	return `${doc.trim()}\n\n${provenance}`;
+}
+
+/** Seed a training root with the built-in student profile and pack set. */
+function initRoot(root: string): void {
+	const dir = packsDir(root);
+	mkdirSync(dir, { recursive: true });
+
+	const written: string[] = [];
+	const skipped: string[] = [];
+	for (const { pack, raw } of builtInEntries()) {
+		const dest = join(dir, `${pack.slug}.md`);
+		if (existsSync(dest)) {
+			skipped.push(pack.slug);
+			continue;
+		}
+		writeFileSync(dest, raw, "utf8");
+		written.push(pack.slug);
+	}
+
+	const student = studentPath(root);
+	const studentWritten = !existsSync(student);
+	if (studentWritten) writeFileSync(student, studentScaffold, "utf8");
+
+	console.log(`Seeded ${join(root, ".coach")}\n`);
+	console.log(
+		`  student.md   ${studentWritten ? "written" : "kept (already present)"}`,
+	);
+	if (written.length) console.log(`  packs written  ${written.join(", ")}`);
+	if (skipped.length) console.log(`  packs kept     ${skipped.join(", ")}`);
+	console.log(
+		"\nThis directory is now the roster. Delete a pack file to retire the subject;\nadd one to create a subject. No recompile either way.",
+	);
 }
 
 /**
@@ -187,15 +292,16 @@ function resolveRoot(): string {
 	return root;
 }
 
+function launchCommand(pack: Pack): string {
+	return pack.command ?? `tutors:coach ${pack.slug}`;
+}
+
 function renderRoster(packs: Pack[]): string {
 	const rows = packs.map(
 		(pack) =>
-			`| \`tutors:coach ${pack.slug}\` | ${pack.name}${pack.local ? " *(local)*" : ""} | ${pack.scope} | ${pack.session} |`,
+			`| \`${launchCommand(pack)}\` | ${pack.name}${pack.local ? " *(local)*" : ""} | ${pack.scope} | ${pack.session} |`,
 	);
-	const siblings = SIBLINGS.map(
-		(sibling) =>
-			`| \`${sibling.command}\` | ${sibling.name} | ${sibling.scope} | ${sibling.session} |`,
-	);
+	const hasExternal = packs.some((pack) => pack.command);
 
 	return [
 		"# The roster",
@@ -206,32 +312,48 @@ function renderRoster(packs: Pack[]): string {
 		"| Launch with | Subject | Covers | Typical session |",
 		"| ----------- | ------- | ------ | --------------- |",
 		...rows,
-		...siblings,
 		"",
-		"Subjects below the packs run as their own binaries — same student, different",
-		"pedagogy, so they are not pack-shaped. Everything else is a pack in",
-		"`system-prompts/coach/packs/`, or a local pack in `.coach/packs/`.",
-		"",
+		...(hasExternal
+			? [
+					"Rows whose command is not `tutors:coach <slug>` run as their own binary —",
+					"same student, different pedagogy, so they are not pack-shaped.",
+					"",
+				]
+			: []),
 		"Each subject owns `.coach/<slug>/` and maintains its own continuity there.",
 	].join("\n");
 }
 
 function printRoster(packs: Pack[]): void {
+	const launchable = packs.filter((pack) => !pack.command);
+	const external = packs.filter((pack) => pack.command);
+
 	console.log("Subjects:\n");
-	for (const pack of packs) {
+	for (const pack of launchable) {
 		const tag = pack.local ? " (local)" : "";
 		console.log(`  tutors:coach ${pack.slug.padEnd(16)}${pack.name}${tag}`);
 		if (pack.scope) console.log(`  ${" ".repeat(29)}${pack.scope}`);
 	}
-	console.log("\nSeparate binaries:\n");
-	for (const sibling of SIBLINGS) {
-		console.log(`  ${sibling.command.padEnd(29)}${sibling.name}`);
+
+	if (external.length) {
+		console.log("\nSeparate binaries:\n");
+		for (const pack of external) {
+			const tag = pack.local ? " (local)" : "";
+			console.log(`  ${(pack.command ?? "").padEnd(29)}${pack.name}${tag}`);
+		}
 	}
+
 	console.log("\nRun `tutors:coach` with no subject to plan a session.");
 }
 
 async function main() {
 	const root = resolveRoot();
+
+	if (parsedArgs.values.init === true) {
+		initRoot(root);
+		process.exit(0);
+	}
+
 	const packs = loadPacks(root);
 
 	if (parsedArgs.values.list === true) {
@@ -253,6 +375,16 @@ async function main() {
 		process.exit(1);
 	}
 
+	// On the roster, but not ours to run.
+	if (pack?.command) {
+		console.error(
+			`\`${pack.slug}\` runs as its own binary. Launch it with:\n\n  ${pack.command}\n`,
+		);
+		process.exit(1);
+	}
+
+	const studentDoc = loadStudent(root);
+
 	// With a subject: student + core + roster + pack. Without one: the
 	// coordinator, which plans rather than teaches and so skips the core.
 	const systemPrompt = pack
@@ -266,7 +398,7 @@ async function main() {
 				studentDoc,
 				renderRoster(packs),
 				coordinatorDoc,
-				`# This training root\n\nYou are running in \`${root}\`. Scaffold into \`${join(root, ".coach")}\`. When you hand the student a launch command, append \`--cwd ${root}\` unless they will already be in that directory.`,
+				`# This training root\n\nYou are running in \`${root}\`. Scaffold into \`${join(root, ".coach")}\`. When you hand the student a launch command, append \`--cwd ${root}\` unless they will already be in that directory.\n\nThe roster is exactly \`.coach/packs/*.md\` once that directory exists: adding a subject means writing a pack file there, and retiring one means deleting it. Neither needs a recompile.`,
 			].join("\n\n---\n\n");
 
 	if (parsedArgs.values["show-prompt"] === true) {
@@ -277,7 +409,9 @@ async function main() {
 	const coachSettings = {
 		permissions: {
 			defaultMode: "default",
-			allow: pack ? pack.allow : COORDINATOR_ALLOW,
+			// Every coach gets `.coach/` — its state directory and the student
+			// profile it is told to keep current. Packs add to that, never replace it.
+			allow: [...new Set([...BASE_ALLOW, ...(pack?.allow ?? [])])],
 		},
 	};
 
