@@ -25,15 +25,28 @@ The session prompt is layered, in order:
 |-------|--------|----------|
 | Core | `system-prompts/shepherd/core.md` | yes |
 | Built in integrations | `system-prompts/shepherd/integrations/*.md` | yes |
+| Workspace charter | `.shepherd/charter.md` in the launch directory | no, read at launch |
 | Workspace integrations | `.shepherd/integrations/*.md` in the launch directory | no, read at launch |
-| Session context header | generated (cwd, state dir, date, backend, loaded modules) | no |
+| Session context header | generated (cwd, state dir, date, backend, charter status, loaded modules) | no |
 
 Every integration module is self gated: it declares how to detect availability (for example `HERDR_ENV=1`, or the presence of messaging tools) and Shepherd skips the capability cleanly when the check fails. That is what keeps the prompt harness agnostic.
+
+## Init and the charter
+
+A fresh workspace is deliberately generic. On first launch Shepherd runs an init conversation with the user to agree the mission, the way of working, the toolset (for example cosmonauts, gh, project tooling), and any structure the workspace needs, then records the agreement as `.shepherd/charter.md`. The charter loads into every session and is the contract; renegotiate it rather than drift from it. A workspace can be any shape: one project, several, a coordinator of coordinators, internet chores.
+
+## Self evolution
+
+Shepherd improves its own operating instructions over time, gated by agreement rather than capability:
+
+- Memories, journal, and docs are written freely.
+- Changes to `charter.md` or `.shepherd/integrations/*.md` are proposed first and applied once the user agrees, with the reason journaled.
+- Ways of working that prove out across workspaces get promoted into the base (below) with the user's agreement. Promoted modules must stay self gated and free of workspace specifics.
 
 ## Extending Shepherd
 
 - **Framework wide**: add a module to `system-prompts/shepherd/integrations/`, import it in `agents/shepherd.ts`, add it to `BUILT_IN_INTEGRATIONS`, recompile.
-- **Per workspace**: drop a `*.md` module into `.shepherd/integrations/` in that directory. Loaded on next launch, no recompile. Local modules are appended after built ins and may extend or override them.
+- **Per workspace**: drop a `*.md` module into `.shepherd/integrations/` in that directory, or let Shepherd write one during init. Loaded on next launch, no recompile. The charter and local modules are appended after built ins and may extend or override them.
 
 ## Workspace state
 
@@ -41,6 +54,7 @@ Shepherd maintains `.shepherd/` in the launch directory:
 
 ```
 .shepherd/
+  charter.md         # agreed mission and way of working, written at init
   MEMORY.md          # index: one line per memory
   memories/          # one fact per file (frontmatter: name, description, type)
   journal.md         # append only session log and handoff

@@ -8,10 +8,12 @@
  * workspace over time.
  *
  * The session prompt is composed from layers:
- *   1. core.md                — identity, workspace protocol, coordination stance
+ *   1. core.md                — identity, workspace protocol, init, self-evolution
  *   2. integrations/*.md      — built-in capability modules (Herdr, inter-agent
  *                               messaging), each self-gated by an availability check
- *   3. .shepherd/integrations/*.md — workspace-local modules appended at launch,
+ *   3. .shepherd/charter.md   — the workspace's agreed mission and way of working,
+ *                               written during the init conversation
+ *   4. .shepherd/integrations/*.md — workspace-local modules appended at launch,
  *                               so a directory can extend Shepherd without a recompile
  *
  * Harness agnostic: spawns through lib/runtime, so the backend is selected with
@@ -94,7 +96,18 @@ function loadLocalIntegrations(cwd: string): { name: string; body: string }[] {
 		}));
 }
 
+/**
+ * The workspace charter is the agreed mission and way of working, written
+ * during the init conversation. Absence means the workspace is uninitiated
+ * and core.md tells Shepherd to run init before substantial work.
+ */
+function loadCharter(cwd: string): string | undefined {
+	const path = join(cwd, STATE_DIR, "charter.md");
+	return existsSync(path) ? readFileSync(path, "utf8") : undefined;
+}
+
 function composeSystemPrompt(cwd: string, backend: string): string {
+	const charter = loadCharter(cwd);
 	const locals = loadLocalIntegrations(cwd);
 	const header = [
 		"# Shepherd session context",
@@ -103,6 +116,9 @@ function composeSystemPrompt(cwd: string, backend: string): string {
 		`- State directory: ${join(cwd, STATE_DIR)}`,
 		`- Date: ${new Date().toISOString().slice(0, 10)}`,
 		`- Backend: ${backend}`,
+		charter
+			? "- Charter: loaded"
+			: "- Charter: none, this workspace is uninitiated",
 		locals.length
 			? `- Workspace-local integrations loaded: ${locals.map((l) => l.name).join(", ")}`
 			: "- Workspace-local integrations loaded: none",
@@ -111,6 +127,7 @@ function composeSystemPrompt(cwd: string, backend: string): string {
 	return [
 		coreDoc,
 		...BUILT_IN_INTEGRATIONS,
+		...(charter ? [charter] : []),
 		...locals.map((l) => l.body),
 		header,
 	].join("\n\n---\n\n");
