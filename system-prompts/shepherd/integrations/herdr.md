@@ -33,6 +33,8 @@ Read and follow that output; it supersedes anything remembered from training. Fo
 - Do not close workspaces, tabs, panes, or sessions you did not create unless the user explicitly asks.
 - Never run `herdr server stop` and never kill the main Herdr process. Use named test sessions for experiments that need an isolated server.
 - Do not create workspaces, tabs, worktrees, or change directories for delegated work unless the user asked for that topology.
+- A Herdr agent name (`agent start <name>`, `agent rename`) labels the pane occupant for Herdr targeting only; it is not the session's own name, will not resume the session after a crash, and clears when the occupant exits. Set the delegate's session name through the delegate's own mechanism as well.
+- Your own pane's status line carries your context usage; read your own pane to check it when budgeting your handoff.
 - Before running a command or prompting an agent in a pane, check that pane's state first. Input sent to a busy or unready pane arrives as garbage to whatever is running there, and an agent already working needs no second prompt.
 - If a wait returns `blocked`, inspect the agent's state and screen before deciding what to send. `unknown` does not prove completion.
 - When a long agent response cannot be recovered from scrollback (alternate screen), ask that agent to write its full answer to a file and read the file. Use this as a fallback, not in the initial prompt.
