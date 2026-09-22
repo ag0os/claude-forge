@@ -66,6 +66,4 @@ The launcher pre approves Read/Write/Edit inside `.shepherd/` and `Bash(herdr:*)
 
 ## Backends
 
-Shepherd spawns through `lib/runtime` (see [AGENT-RUNTIME.md](AGENT-RUNTIME.md)). Default is `claude-cli`. Claude specific options (settings, MCP config, flag passthrough) are only sent to `claude-cli`.
-
-On `codex-cli` the launcher writes the composed prompt to `AGENTS.md` in the launch directory (marker guarded, rewritten every launch, never clobbers a foreign AGENTS.md), because codex 0.155+ ignores the `base_instructions` config override the runtime layer uses. Codex also refuses non trusted directories in exec mode, so `git init` the workspace or expect its trust prompt interactively. `codex-sdk` falls back to print mode. Note the runtime level `base_instructions` breakage still affects other agents that pass a system prompt to the codex backend; only shepherd carries the AGENTS.md workaround so far.
+Shepherd spawns through `lib/runtime` (see [AGENT-RUNTIME.md](AGENT-RUNTIME.md)). Default is `claude-cli`; `codex-cli` supports interactive sessions with the system prompt prepended; `codex-sdk` falls back to print mode. Claude specific options (settings, MCP config, flag passthrough) are only sent to `claude-cli`.
