@@ -59,4 +59,4 @@ See [../docs/HOOKS.md](../docs/HOOKS.md) for comprehensive guide with examples, 
 
 ## Current Hooks
 
-- `cc-stop.ts` - Stop hook (currently no-op for demonstration)
+None at the moment.

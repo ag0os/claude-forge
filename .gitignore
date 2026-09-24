@@ -36,3 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Private/local agents (user customizations)
 agents/local/
+
+# Local Claude Code settings
+.claude/settings.local.json

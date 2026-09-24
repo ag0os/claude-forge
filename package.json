@@ -1,13 +1,11 @@
 {
   "name": "claude-forge",
   "version": "0.1.0",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
     "compile": "bun scripts/compile.ts",
     "compile:all": "bun scripts/compile-all.ts",
-    "compile:parallel": "bun build cli/parallel.ts --compile --outfile bin/parallel",
     "compile:forge": "bun build cli/forge.ts --compile --outfile bin/forge",
     "watch": "bun scripts/watch-agents.ts",
     "lint": "biome check --write .",
@@ -29,13 +27,8 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.22",
-    "@anthropic-ai/sdk": "^0.57.0",
     "@google/genai": "^1.11.0",
-    "exit-hook": "^4.0.0",
     "ink": "^6.2.1",
-    "listr": "^0.14.3",
-    "openai": "^5.11.0",
-    "react": "^19.1.1",
-    "react-devtools-core": "^6.1.5"
+    "react": "^19.1.1"
   }
 }

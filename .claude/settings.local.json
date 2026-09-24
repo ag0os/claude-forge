@@ -1,9 +1,0 @@
-{
-  "enabledPlugins": {
-    "rails-dev-plugin@rails-dev-plugin": false
-  },
-  "permissions": {
-    "allow": ["Bash(echo $CLAUDE_PROJECT_DIR)", "mcp__brain__Task"],
-    "deny": []
-  }
-}

@@ -25,6 +25,7 @@
 ## Coding Style & Naming Conventions
 
 - TypeScript (ESM) with Biome formatting: tabs for indentation and double quotes.
+- Never use default exports.
 - Keep filenames in `kebab-case.ts`; tests use `*.test.ts`.
 - Agent files in `agents/` should match settings files:
   - `agents/my-agent.ts`
