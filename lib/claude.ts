@@ -23,8 +23,8 @@ vid(){
 }
 */
 import { mkdtempSync, rmSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
-import { join, normalize } from "node:path";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { $, spawn, type Subprocess } from "bun";
 import type { ClaudeFlags } from "./claude-flags.types";
 import { buildClaudeFlags } from "./flags";
@@ -64,29 +64,6 @@ export async function getClaudeExecutablePath(): Promise<string> {
 				"Or set CLAUDE_PATH environment variable to your Claude executable path.",
 		);
 	}
-}
-
-/**
- * Get the Claude projects path for the current working directory
- * @returns The path to the Claude project directory for the current pwd
- */
-export async function getClaudeProjectsPath(): Promise<string> {
-  const pwd = process.platform === 'win32'
-    ? await $`cd`.quiet().text()
-    : await $`pwd`.quiet().text();
-
-  // Normalize the path first, then replace separators and dots
-  const normalizedPwd = normalize(pwd.trim());
-  const dasherizedPwd = normalizedPwd.replace(/[/\\.]/g, "-");
-
-  const projectPath = join(
-    homedir(),
-    ".claude",
-    "projects",
-    dasherizedPwd,
-  );
-
-  return projectPath;
 }
 
 /**
