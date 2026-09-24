@@ -21,7 +21,7 @@ let knownAgents = new Map<string, string>();
 /**
  * Convert a relative path to a namespaced binary name
  * - Root level: agents/foo.ts → foo
- * - Subdirectory: agents/forge-tasks/manager.ts → forge-tasks:manager
+ * - Subdirectory: agents/plan/planner.ts → plan:planner
  */
 function toBinaryName(relativePath: string): string {
   const dir = dirname(relativePath);

@@ -4,12 +4,10 @@
  * Forge CLI - Unified entry point for claude-forge tools
  *
  * Usage:
- *   forge tasks <command>    - Task management
  *   forge config <command>   - Configuration and discovery
  */
 
-import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 function getForgeRoot(): string {
@@ -36,15 +34,6 @@ const subcommand = process.argv[2];
 const args = process.argv.slice(3);
 
 switch (subcommand) {
-	case "tasks": {
-		const result = spawnSync(resolve(getBinDir(), "forge-tasks"), args, {
-			stdio: "inherit",
-			cwd: process.cwd(),
-		});
-		process.exit(result.status ?? 1);
-		break;
-	}
-
 	case "config": {
 		const configSubcmd = args[0];
 		const forgeRoot = getForgeRoot();
@@ -76,14 +65,12 @@ switch (subcommand) {
 	case undefined:
 		console.log(`Usage: forge <command> [options]
 
-Claude Forge - Task management and configuration
+Claude Forge - Configuration and discovery
 
 Commands:
-  tasks <cmd>     Task management (list, create, edit, view, delete, search)
   config <cmd>    Configuration (agents, path)
 
 Examples:
-  forge tasks list --ready
   forge config agents
 
 Run 'forge <command> --help' for command-specific help.`);

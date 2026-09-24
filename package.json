@@ -7,7 +7,6 @@
   "scripts": {
     "compile": "bun scripts/compile.ts",
     "compile:all": "bun scripts/compile-all.ts",
-    "compile:forge-tasks": "bun build forge-tasks/cli/index.ts --compile --outfile bin/forge-tasks",
     "compile:parallel": "bun build cli/parallel.ts --compile --outfile bin/parallel",
     "compile:forge": "bun build cli/forge.ts --compile --outfile bin/forge",
     "watch": "bun scripts/watch-agents.ts",
@@ -17,7 +16,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:all": "bun run typecheck && bun run check",
     "lint:fix": "biome check --write --unsafe .",
-    "test:forge-tasks": "bun test forge-tasks/",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -36,9 +34,7 @@
     "boxen": "^8.0.1",
     "chalk": "^5.6.0",
     "cli-table3": "^0.6.5",
-    "commander": "^14.0.2",
     "exit-hook": "^4.0.0",
-    "gray-matter": "^4.0.3",
     "ink": "^6.2.1",
     "listr": "^0.14.3",
     "openai": "^5.11.0",

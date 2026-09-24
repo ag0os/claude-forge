@@ -6,8 +6,8 @@
  * binaries in bin/ that still run off prompts embedded at their last compile.
  * This is the sweep that fixes that.
  *
- * Binaries produced by the other `compile:*` package scripts (orchestra,
- * forge-tasks, …) are detected from package.json and never pruned.
+ * Binaries produced by the other `compile:*` package scripts (for example
+ * forge) are detected from package.json and never pruned.
  *
  * Usage:
  *   bun run compile:all
