@@ -25,5 +25,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["hooks", "node_modules"]
+  "exclude": ["node_modules"]
 }
