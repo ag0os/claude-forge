@@ -116,7 +116,7 @@ Wed 30 min · tutors:coach testing — kata, Ruby
 Thu 30 min · tutors:coach coding — drill, TypeScript
 Fri 60 min · tutors:coach ts-react — next lesson
 Sat 45 min · tutors:coach system-design — challenge
-Sun rest / STAR story review
+Sun rest
 ```
 
 Offer to save the sketch to `.coach/plan.md` if they want to glance back at it

@@ -63,9 +63,6 @@ import coreDoc from "../../system-prompts/coach/core.md" with { type: "text" };
 import herdrIntegration from "../../system-prompts/coach/integrations/herdr.md" with {
 	type: "text",
 };
-import ccaCoachPack from "../../system-prompts/coach/packs/cca-coach.md" with {
-	type: "text",
-};
 import codingPack from "../../system-prompts/coach/packs/coding.md" with {
 	type: "text",
 };
@@ -73,9 +70,6 @@ import dataModelingPack from "../../system-prompts/coach/packs/data-modeling.md"
 	type: "text",
 };
 import railsPack from "../../system-prompts/coach/packs/rails.md" with {
-	type: "text",
-};
-import starPack from "../../system-prompts/coach/packs/star.md" with {
 	type: "text",
 };
 import systemDesignPack from "../../system-prompts/coach/packs/system-design.md" with {
@@ -91,14 +85,7 @@ import studentScaffold from "../../system-prompts/coach/student.md" with {
 	type: "text",
 };
 
-/**
- * Seeds for a fresh training root — not a floor every root inherits.
- *
- * Subjects that run as their own binary (star, cca-coach) are packs like any
- * other; they just carry a `command:` field instead of being launched through
- * this one. That keeps the roster in a single place, so retiring one is a file
- * deletion rather than a source edit and a recompile.
- */
+/** Seeds for a fresh training root — not a floor every root inherits. */
 const BUILT_IN_PACKS: string[] = [
 	codingPack,
 	dataModelingPack,
@@ -106,8 +93,6 @@ const BUILT_IN_PACKS: string[] = [
 	systemDesignPack,
 	testingPack,
 	tsReactPack,
-	starPack,
-	ccaCoachPack,
 ];
 
 /**
@@ -136,8 +121,6 @@ type Pack = {
 	scope: string;
 	session: string;
 	allow: string[];
-	/** Set when the subject runs as its own binary rather than through this one. */
-	command?: string;
 	body: string;
 	local: boolean;
 };
@@ -170,7 +153,6 @@ function parsePack(raw: string, local: boolean): Pack | null {
 			.split(",")
 			.map((tool) => tool.trim())
 			.filter(Boolean),
-		command: meta.get("command") || undefined,
 		body: raw.slice(match[0].length).trim(),
 		local,
 	};
@@ -332,16 +314,11 @@ function resolveRoot(): string {
 	return root;
 }
 
-function launchCommand(pack: Pack): string {
-	return pack.command ?? `tutors:coach ${pack.slug}`;
-}
-
 function renderRoster(packs: Pack[]): string {
 	const rows = packs.map(
 		(pack) =>
-			`| \`${launchCommand(pack)}\` | ${pack.name}${pack.local ? " *(local)*" : ""} | ${pack.scope} | ${pack.session} |`,
+			`| \`tutors:coach ${pack.slug}\` | ${pack.name}${pack.local ? " *(local)*" : ""} | ${pack.scope} | ${pack.session} |`,
 	);
-	const hasExternal = packs.some((pack) => pack.command);
 
 	return [
 		"# The roster",
@@ -353,34 +330,16 @@ function renderRoster(packs: Pack[]): string {
 		"| ----------- | ------- | ------ | --------------- |",
 		...rows,
 		"",
-		...(hasExternal
-			? [
-					"Rows whose command is not `tutors:coach <slug>` run as their own binary —",
-					"same student, different pedagogy, so they are not pack-shaped.",
-					"",
-				]
-			: []),
 		"Each subject owns `.coach/<slug>/` and maintains its own continuity there.",
 	].join("\n");
 }
 
 function printRoster(packs: Pack[]): void {
-	const launchable = packs.filter((pack) => !pack.command);
-	const external = packs.filter((pack) => pack.command);
-
 	console.log("Subjects:\n");
-	for (const pack of launchable) {
+	for (const pack of packs) {
 		const tag = pack.local ? " (local)" : "";
 		console.log(`  tutors:coach ${pack.slug.padEnd(16)}${pack.name}${tag}`);
 		if (pack.scope) console.log(`  ${" ".repeat(29)}${pack.scope}`);
-	}
-
-	if (external.length) {
-		console.log("\nSeparate binaries:\n");
-		for (const pack of external) {
-			const tag = pack.local ? " (local)" : "";
-			console.log(`  ${(pack.command ?? "").padEnd(29)}${pack.name}${tag}`);
-		}
 	}
 
 	console.log("\nRun `tutors:coach` with no subject to plan a session.");
@@ -412,14 +371,6 @@ async function main() {
 	if (requested && !pack && /^[a-z0-9][a-z0-9-]*$/.test(requested)) {
 		console.error(`Unknown subject: ${requested}\n`);
 		printRoster(packs);
-		process.exit(1);
-	}
-
-	// On the roster, but not ours to run.
-	if (pack?.command) {
-		console.error(
-			`\`${pack.slug}\` runs as its own binary. Launch it with:\n\n  ${pack.command}\n`,
-		);
 		process.exit(1);
 	}
 

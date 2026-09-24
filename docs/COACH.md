@@ -149,16 +149,3 @@ coaching works belongs in core, not in a pack.
 The coordinator can also author a pack interactively — ask it for a coach on
 something the roster doesn't cover and it will interview you and write the
 file to `.coach/packs/`.
-
-## Subjects that are not packs
-
-Two coaches keep their own binaries, because they are not pack-shaped:
-
-- **`tutors:star`** — behavioral interview prep. No program file, no progress
-  tracking, no modes. It interrogates raw experience into STAR stories and
-  tracks coverage over behavior categories.
-- **`tutors:cca-coach`** — CCA-F exam prep. Almost entirely domain knowledge:
-  exam blueprint, verified-mechanics drift, distractor archetypes, and a real
-  scored diagnostic. The pedagogy is a thin layer on top.
-
-Both appear on the generated roster so the coordinator can route to them.
