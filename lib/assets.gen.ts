@@ -11,7 +11,6 @@ import SP_riff from '../system-prompts/riff-prompt.md' with { type: 'text' }
 import SP_diagram_topic from '../system-prompts/diagram-topic-prompt.md' with { type: 'text' }
 import SP_design_audit from '../system-prompts/design-audit-prompt.md' with { type: 'text' }
 import SP_comment_review from '../system-prompts/comment-review-prompt.md' with { type: 'text' }
-import SP_brainstorm from '../system-prompts/brainstorm-prompt.md' with { type: 'text' }
 import SP_builder from '../system-prompts/builder-prompt.md' with { type: 'text' }
 import SP_diagram_consolidate from '../system-prompts/diagram-consolidate-prompt.md' with { type: 'text' }
 import SP_pr_review from '../system-prompts/pr-review-prompt.md' with { type: 'text' }
@@ -27,7 +26,6 @@ import ST_orient from '../settings/orient.settings.json' with { type: 'json' }
 import ST_update_claudemd from '../settings/update-claudemd.settings.json' with { type: 'json' }
 import ST_comment_review from '../settings/comment-review.settings.json' with { type: 'json' }
 import ST_builder from '../settings/builder.settings.json' with { type: 'json' }
-import ST_brainstorm from '../settings/brainstorm.settings.json' with { type: 'json' }
 import ST_diagram_all from '../settings/diagram-all.settings.json' with { type: 'json' }
 import ST_webfetch from '../settings/webfetch.settings.json' with { type: 'json' }
 import ST_diagram_topic from '../settings/diagram-topic.settings.json' with { type: 'json' }
@@ -38,7 +36,6 @@ import ST_designer from '../settings/designer.settings.json' with { type: 'json'
 import ST_tdd_coordinator from '../settings/tdd-coordinator.settings.json' with { type: 'json' }
 import ST_rails_backlog from '../settings/rails-backlog.settings.json' with { type: 'json' }
 import ST_diagram_consolidate from '../settings/diagram-consolidate.settings.json' with { type: 'json' }
-import MCP_brainstorm from '../settings/brainstorm.mcp.json' with { type: 'json' }
 import MCP_designer from '../settings/designer.mcp.json' with { type: 'json' }
 import MCP_orient from '../settings/orient.mcp.json' with { type: 'json' }
 import MCP_contain from '../settings/contain.mcp.json' with { type: 'json' }
@@ -50,7 +47,6 @@ import MCP_update_claudemd from '../settings/update-claudemd.mcp.json' with { ty
 import MCP_tdd_coordinator from '../settings/tdd-coordinator.mcp.json' with { type: 'json' }
 
 export const SYSTEM_PROMPTS = {
-  'brainstorm': SP_brainstorm,
   'builder': SP_builder,
   'comment-review': SP_comment_review,
   'design-audit': SP_design_audit,
@@ -74,7 +70,6 @@ export const SYSTEM_PROMPTS = {
 export const PROMPTS = {
 };
 export const SETTINGS = {
-  'brainstorm': ST_brainstorm,
   'builder': ST_builder,
   'comment-review': ST_comment_review,
   'contain': ST_contain,
@@ -93,7 +88,6 @@ export const SETTINGS = {
   'webfetch': ST_webfetch
 };
 export const MCP = {
-  'brainstorm': MCP_brainstorm,
   'builder': MCP_builder,
   'contain': MCP_contain,
   'designer': MCP_designer,

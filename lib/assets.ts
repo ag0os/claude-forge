@@ -9,7 +9,7 @@ type Json = unknown;
 import { SYSTEM_PROMPTS, PROMPTS, SETTINGS, MCP } from "./assets.gen";
 
 function baseFromImporter(importerUrl: string): string {
-  // importerUrl is like file:///.../agents/brainstorm.ts
+  // importerUrl is like file:///.../agents/tools/webfetch.ts
   const pathname = new URL(importerUrl).pathname;
   const file = pathname.split("/").pop() ?? "";
   const dot = file.lastIndexOf(".");
