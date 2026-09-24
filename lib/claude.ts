@@ -3,31 +3,10 @@
  * 
  */
 
-/*
-with_gemini(){
-  local __gemini_api_key
-  __gemini_api_key=$(op item get "GEMINI_API_KEY_FREE" --fields credential --reveal | tr -d '\n')
-
-  if [[ -z $__gemini_api_key ]]; then
-    echo "with_gemini: 1Password returned nothing 🤷‍♂️" >&2
-    return 1
-  fi
-
-  GEMINI_API_KEY="$__gemini_api_key" "$@"
-}*/
-
-/*
-zsh alias:
-vid(){
-  with_gemini /Users/johnlindquist/dev/claude-agents/bin/claude-video "$@"
-}
-*/
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { $, spawn, type Subprocess } from "bun";
-import type { ClaudeFlags } from "./claude-flags.types";
-import { buildClaudeFlags } from "./flags";
 import { getForgeRoot } from "./forge-root";
 
 /**
@@ -168,27 +147,6 @@ export async function spawnClaudeAndWait(options: SpawnClaudeOptions = {}): Prom
 
   globalThis.process.on("SIGINT", onExit);
   globalThis.process.on("SIGTERM", onExit);
-
-  await process.exited;
-  cleanup();
-
-  return process.exitCode ?? 0;
-}
-
-/**
- * Spawn Claude with given default flags and wait for completion
- * Automatically includes positionals from command line and merges with user flags
- * @param defaultFlags - Default flags object (see ClaudeFlags for available options)
- * @returns Exit code from the Claude process
- * @deprecated Use spawnClaudeAndWait instead for better temp directory handling
- */
-export async function claude(prompt: string = "", defaultFlags: ClaudeFlags = {}) {
-  // Build flags, merging defaults with user-provided flags
-  const flags = buildClaudeFlags(defaultFlags);
-
-  const { process, cleanup } = spawnClaude({
-    args: [...flags, prompt],
-  });
 
   await process.exited;
   cleanup();
