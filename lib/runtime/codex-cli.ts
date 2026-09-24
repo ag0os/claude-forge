@@ -20,7 +20,6 @@ import { readFileSync } from "node:fs";
 import { spawn, type Subprocess } from "bun";
 import { $ } from "bun";
 
-import { COMPLETION_MARKER } from "../orchestra/constants";
 import { debugCommand, debugSpawn } from "./debug";
 import type {
 	AgentRuntime,
@@ -130,14 +129,14 @@ export class CodexCliRuntime implements AgentRuntime {
 			return this.runInteractive(options);
 		}
 
-		// Print mode: capture output and detect marker
+		// Print mode: capture output
 		return this.runStreaming(options, {});
 	}
 
 	/**
 	 * Run an agent with streaming output callbacks
 	 *
-	 * Streams stdout in real-time and detects the completion marker.
+	 * Streams stdout and stderr in real-time through the callbacks.
 	 * Uses `codex exec "<prompt>"` for non-interactive execution.
 	 *
 	 * @param options - Run configuration (mode should be "print")
@@ -196,14 +195,13 @@ export class CodexCliRuntime implements AgentRuntime {
 		};
 
 		try {
-			const result = await this.streamAndDetect(proc, callbacks);
+			const result = await this.streamOutput(proc, callbacks);
 			cleanup();
 			return result;
 		} catch (error) {
 			cleanup();
 			return {
 				exitCode: 1,
-				completionMarkerFound: false,
 				stderr: error instanceof Error ? error.message : String(error),
 			};
 		}
@@ -213,7 +211,6 @@ export class CodexCliRuntime implements AgentRuntime {
 	 * Run an agent in interactive mode
 	 *
 	 * Spawns `codex` with inherited stdio for full user interaction.
-	 * Completion marker detection is not performed in this mode.
 	 *
 	 * @param options - Run configuration (mode is ignored, always interactive)
 	 * @returns Promise resolving to the run result
@@ -271,7 +268,6 @@ export class CodexCliRuntime implements AgentRuntime {
 
 		return {
 			exitCode: proc.exitCode ?? 0,
-			completionMarkerFound: false, // Not checked in interactive mode
 		};
 	}
 
@@ -489,21 +485,16 @@ export class CodexCliRuntime implements AgentRuntime {
 	}
 
 	/**
-	 * Stream stdout from a process and detect the completion marker
-	 *
-	 * This is the core streaming logic that enables orchestra loop control.
-	 * It watches for the ORCHESTRA_COMPLETE marker in the output stream.
+	 * Stream stdout and stderr from a process, forwarding chunks to the callbacks
 	 *
 	 * @param proc - The spawned subprocess with piped stdout/stderr
 	 * @param callbacks - Streaming callbacks for output processing
 	 * @returns Promise resolving to the run result
 	 */
-	private async streamAndDetect(
+	private async streamOutput(
 		proc: Subprocess,
 		callbacks: StreamCallbacks
 	): Promise<RunResult> {
-		let completionMarkerFound = false;
-		let buffer = "";
 		let stdout = "";
 		let stderr = "";
 
@@ -521,24 +512,10 @@ export class CodexCliRuntime implements AgentRuntime {
 
 					const text = decoder.decode(value, { stream: true });
 					stdout += text;
-					buffer += text;
 
 					// Call stdout callback if provided
 					if (callbacks.onStdout) {
 						callbacks.onStdout(text);
-					}
-
-					// Check for completion marker in accumulated buffer
-					if (!completionMarkerFound && buffer.includes(COMPLETION_MARKER)) {
-						completionMarkerFound = true;
-						if (callbacks.onMarkerDetected) {
-							callbacks.onMarkerDetected();
-						}
-					}
-
-					// Keep buffer from growing unbounded (keep last 1000 chars)
-					if (buffer.length > 2000) {
-						buffer = buffer.slice(-1000);
 					}
 				}
 			} catch {
@@ -578,7 +555,6 @@ export class CodexCliRuntime implements AgentRuntime {
 			exitCode: proc.exitCode ?? 0,
 			stdout,
 			stderr,
-			completionMarkerFound,
 		};
 	}
 }

@@ -3,8 +3,7 @@
  *
  * This module defines the core interfaces and types that all runtime backends
  * (claude-cli, codex-cli, codex-sdk, etc.) must implement. The abstraction
- * allows agents and orchestra to run without being tightly coupled to any
- * specific backend.
+ * allows agents to run without being tightly coupled to any specific backend.
  *
  * @module lib/runtime/types
  */
@@ -239,7 +238,7 @@ export interface RunOptions {
  * Result from running an agent
  *
  * This structure captures the outcome of an agent run, including
- * exit status, captured output, and completion marker detection.
+ * exit status and captured output.
  */
 export interface RunResult {
 	/**
@@ -264,14 +263,6 @@ export interface RunResult {
 	stderr?: string;
 
 	/**
-	 * Whether the completion marker (ORCHESTRA_COMPLETE) was detected
-	 *
-	 * This is used by orchestra to determine when an agent loop should stop.
-	 * Detection happens during streaming or in the final output.
-	 */
-	completionMarkerFound: boolean;
-
-	/**
 	 * Structured output from the agent (if available)
 	 *
 	 * Some backends (like Codex SDK) may return structured data
@@ -287,8 +278,7 @@ export interface RunResult {
 /**
  * Callbacks for streaming mode execution
  *
- * These callbacks allow callers to process output incrementally
- * and react to completion markers in real-time.
+ * These callbacks allow callers to process output incrementally.
  */
 export interface StreamCallbacks {
 	/**
@@ -304,14 +294,6 @@ export interface StreamCallbacks {
 	 * @param data - The raw string data received from stderr
 	 */
 	onStderr?: (data: string) => void;
-
-	/**
-	 * Called when the completion marker is detected in the output
-	 *
-	 * This is called at most once per run, when ORCHESTRA_COMPLETE
-	 * is found in the output stream.
-	 */
-	onMarkerDetected?: () => void;
 }
 
 // ============================================================================
@@ -321,7 +303,7 @@ export interface StreamCallbacks {
 /**
  * Core interface that all runtime backends must implement
  *
- * This abstraction allows agents and orchestra to run without being
+ * This abstraction allows agents to run without being
  * tightly coupled to any specific backend (Claude CLI, Codex, etc.).
  *
  * @example
@@ -383,8 +365,7 @@ export interface AgentRuntime {
 	/**
 	 * Run an agent with streaming output callbacks
 	 *
-	 * This method enables real-time output processing and completion
-	 * marker detection, which is essential for orchestra loop control.
+	 * This method enables real-time output processing.
 	 *
 	 * @param options - Run configuration (mode should be "print")
 	 * @param callbacks - Streaming callbacks for output processing

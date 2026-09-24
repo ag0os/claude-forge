@@ -39,7 +39,6 @@ export class CodexSdkRuntime implements AgentRuntime {
 	async run(_options: RunOptions): Promise<RunResult> {
 		return {
 			exitCode: 1,
-			completionMarkerFound: false,
 			stderr: NOT_IMPLEMENTED_MESSAGE,
 		};
 	}
@@ -54,7 +53,6 @@ export class CodexSdkRuntime implements AgentRuntime {
 
 		return {
 			exitCode: 1,
-			completionMarkerFound: false,
 			stderr: NOT_IMPLEMENTED_MESSAGE,
 		};
 	}
@@ -62,7 +60,6 @@ export class CodexSdkRuntime implements AgentRuntime {
 	async runInteractive(_options: Omit<RunOptions, "mode">): Promise<RunResult> {
 		return {
 			exitCode: 1,
-			completionMarkerFound: false,
 			stderr: NOT_IMPLEMENTED_MESSAGE,
 		};
 	}

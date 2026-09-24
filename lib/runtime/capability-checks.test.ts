@@ -107,9 +107,9 @@ describe("checkCapabilities", () => {
 			supportsStreaming: true,
 			supportsSystemPrompt: false,
 		}),
-		run: async () => ({ exitCode: 0, completionMarkerFound: false }),
-		runStreaming: async () => ({ exitCode: 0, completionMarkerFound: false }),
-		runInteractive: async () => ({ exitCode: 0, completionMarkerFound: false }),
+		run: async () => ({ exitCode: 0 }),
+		runStreaming: async () => ({ exitCode: 0 }),
+		runInteractive: async () => ({ exitCode: 0 }),
 	};
 
 	// Mock runtime with full capabilities (like Claude CLI)
@@ -125,9 +125,9 @@ describe("checkCapabilities", () => {
 			supportsStreaming: true,
 			supportsSystemPrompt: true,
 		}),
-		run: async () => ({ exitCode: 0, completionMarkerFound: false }),
-		runStreaming: async () => ({ exitCode: 0, completionMarkerFound: false }),
-		runInteractive: async () => ({ exitCode: 0, completionMarkerFound: false }),
+		run: async () => ({ exitCode: 0 }),
+		runStreaming: async () => ({ exitCode: 0 }),
+		runInteractive: async () => ({ exitCode: 0 }),
 	};
 
 	let warnMock: ReturnType<typeof mock>;
@@ -252,9 +252,9 @@ describe("getCapabilityMismatches", () => {
 			supportsStreaming: true,
 			supportsSystemPrompt: false,
 		}),
-		run: async () => ({ exitCode: 0, completionMarkerFound: false }),
-		runStreaming: async () => ({ exitCode: 0, completionMarkerFound: false }),
-		runInteractive: async () => ({ exitCode: 0, completionMarkerFound: false }),
+		run: async () => ({ exitCode: 0 }),
+		runStreaming: async () => ({ exitCode: 0 }),
+		runInteractive: async () => ({ exitCode: 0 }),
 	};
 
 	test("returns empty array when no mismatches", () => {
@@ -349,12 +349,9 @@ describe("getCapabilityMismatches", () => {
 				supportsStreaming: true,
 				supportsSystemPrompt: true,
 			}),
-			run: async () => ({ exitCode: 0, completionMarkerFound: false }),
-			runStreaming: async () => ({ exitCode: 0, completionMarkerFound: false }),
-			runInteractive: async () => ({
-				exitCode: 0,
-				completionMarkerFound: false,
-			}),
+			run: async () => ({ exitCode: 0 }),
+			runStreaming: async () => ({ exitCode: 0 }),
+			runInteractive: async () => ({ exitCode: 0 }),
 		};
 
 		const options: RunOptions = {

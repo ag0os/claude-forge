@@ -2,8 +2,8 @@
  * Runtime abstraction registry and resolver
  *
  * This module provides the central registry for runtime backends and unified
- * entry points for agent execution. It decouples agents and orchestra from
- * specific backend implementations.
+ * entry points for agent execution. It decouples agents from specific backend
+ * implementations.
  *
  * @module lib/runtime
  *
@@ -76,11 +76,6 @@ export const DEFAULT_BACKEND: RuntimeBackend = "claude-cli";
  * Environment variable for backend override
  */
 export const BACKEND_ENV_VAR = "FORGE_BACKEND";
-
-/**
- * Completion marker that agents output to signal they are done
- */
-export const COMPLETION_MARKER = "ORCHESTRA_COMPLETE";
 
 // ============================================================================
 // Install Instructions
@@ -570,15 +565,14 @@ export async function runAgentOnce(options: WrapperOptions): Promise<RunResult> 
 /**
  * Run an agent with streaming output and optional callbacks
  *
- * This wrapper enables real-time output processing and completion marker
- * detection, which is essential for orchestra loop control.
+ * This wrapper enables real-time output processing.
  *
  * This function performs availability checks and capability warnings before
  * executing the agent. If the backend is not available, it throws a
  * BackendNotAvailableError with installation instructions.
  *
  * @param options - Run options (mode is set to "print" automatically)
- * @param callbacks - Callbacks for stdout, stderr, and marker detection
+ * @param callbacks - Callbacks for stdout and stderr
  * @returns Promise resolving to the run result
  * @throws BackendNotAvailableError if the backend is not installed
  *
@@ -591,7 +585,7 @@ export async function runAgentOnce(options: WrapperOptions): Promise<RunResult> 
  *   },
  *   {
  *     onStdout: (data) => process.stdout.write(data),
- *     onMarkerDetected: () => console.log("Agent signaled completion"),
+ *     onStderr: (data) => process.stderr.write(data),
  *   }
  * );
  * ```
@@ -766,19 +760,6 @@ export async function isBackendAvailable(
 		debugLog("runtime", `Backend ${resolvedBackend} check failed`, error);
 		return false;
 	}
-}
-
-/**
- * Detect completion marker in text
- *
- * Checks if the completion marker (ORCHESTRA_COMPLETE) appears in the text.
- * Used by streaming implementations for marker detection.
- *
- * @param text - The text to search
- * @returns true if the completion marker is found
- */
-export function detectCompletionMarker(text: string): boolean {
-	return text.includes(COMPLETION_MARKER);
 }
 
 // ============================================================================

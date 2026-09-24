@@ -30,7 +30,6 @@ describe("normalizeRunResult", () => {
 		const result = normalizeRunResult({
 			exitCode: 0,
 			stdout: "ERROR: 404 Not Found\n",
-			completionMarkerFound: false,
 		});
 
 		expect(result.stdout).toBe("ERROR: 404 Not Found\n");
@@ -42,7 +41,6 @@ describe("normalizeRunResult", () => {
 		const result = normalizeRunResult({
 			exitCode: 17,
 			stderr: "backend unavailable\nstack trace",
-			completionMarkerFound: false,
 		});
 
 		expect(result.stdout).toBe("ERROR: backend unavailable\n");
@@ -64,7 +62,6 @@ describe("runWebfetchCli", () => {
 			return {
 				exitCode: 0,
 				stdout: "ok",
-				completionMarkerFound: false,
 			};
 		};
 

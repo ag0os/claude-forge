@@ -21,6 +21,9 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
 	ensureBackendAvailable,
 	getRuntime,
@@ -210,10 +213,50 @@ describe("Integration: Streaming Callbacks", () => {
 		const callbacks = {
 			onStdout: (data: string) => {},
 			onStderr: (data: string) => {},
-			onMarkerDetected: () => {},
 		};
 
 		// Just verify the function exists and has correct signature
 		expect(typeof runAgentStreaming).toBe("function");
+	});
+
+	test("claude-cli runStreaming forwards stdout and stderr chunks", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "runtime-stream-test-"));
+		const fakeClaude = join(dir, "claude");
+		writeFileSync(
+			fakeClaude,
+			'#!/bin/sh\necho "out line"\necho "err line" >&2\nexit 3\n',
+		);
+		chmodSync(fakeClaude, 0o755);
+
+		const originalClaudePath = process.env.CLAUDE_PATH;
+		process.env.CLAUDE_PATH = fakeClaude;
+		try {
+			let streamedOut = "";
+			let streamedErr = "";
+			const result = await getRuntime("claude-cli").runStreaming(
+				{ prompt: "hi", mode: "print" },
+				{
+					onStdout: (data) => {
+						streamedOut += data;
+					},
+					onStderr: (data) => {
+						streamedErr += data;
+					},
+				},
+			);
+
+			expect(result.exitCode).toBe(3);
+			expect(result.stdout).toBe("out line\n");
+			expect(result.stderr).toBe("err line\n");
+			expect(result.stdout).toBe(streamedOut);
+			expect(result.stderr).toBe(streamedErr);
+		} finally {
+			if (originalClaudePath === undefined) {
+				delete process.env.CLAUDE_PATH;
+			} else {
+				process.env.CLAUDE_PATH = originalClaudePath;
+			}
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

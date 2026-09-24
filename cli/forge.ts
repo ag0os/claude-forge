@@ -5,12 +5,11 @@
  *
  * Usage:
  *   forge tasks <command>    - Task management
- *   forge orch <args>        - Agent orchestration
  *   forge config <command>   - Configuration and discovery
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 function getForgeRoot(): string {
@@ -46,25 +45,10 @@ switch (subcommand) {
 		break;
 	}
 
-	case "orch": {
-		const result = spawnSync(resolve(getBinDir(), "orchestra"), args, {
-			stdio: "inherit",
-			cwd: process.cwd(),
-		});
-		process.exit(result.status ?? 1);
-		break;
-	}
-
 	case "config": {
 		const configSubcmd = args[0];
 		const forgeRoot = getForgeRoot();
 		switch (configSubcmd) {
-			case "chains": {
-				const chainsPath = resolve(forgeRoot, "forge/orch/chains.json");
-				const chains = JSON.parse(readFileSync(chainsPath, "utf-8"));
-				console.log(JSON.stringify(chains, null, 2));
-				break;
-			}
 			case "agents": {
 				const binDir = getBinDir();
 				const files = readdirSync(binDir)
@@ -80,7 +64,7 @@ switch (subcommand) {
 				break;
 			}
 			default:
-				console.error("Usage: forge config <chains|agents|path>");
+				console.error("Usage: forge config <agents|path>");
 				process.exit(1);
 		}
 		break;
@@ -92,18 +76,15 @@ switch (subcommand) {
 	case undefined:
 		console.log(`Usage: forge <command> [options]
 
-Claude Forge - Agent orchestration and task management
+Claude Forge - Task management and configuration
 
 Commands:
   tasks <cmd>     Task management (list, create, edit, view, delete, search)
-  orch <args>     Agent orchestration (run chains, loops, pipelines)
-  config <cmd>    Configuration (chains, agents, path)
+  config <cmd>    Configuration (agents, path)
 
 Examples:
   forge tasks list --ready
-  forge orch --chain build
-  forge orch "planner:3 -> builder:10"
-  forge config chains
+  forge config agents
 
 Run 'forge <command> --help' for command-specific help.`);
 		break;
