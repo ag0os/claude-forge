@@ -4,7 +4,7 @@ A collection of TypeScript agents and utilities for enhancing Claude Code CLI fu
 
 ## Origins
 
-This project was originally forked from [johnlindquist/claude-workshop-live](https://github.com/johnlindquist/claude-workshop-live). It has since evolved significantly with new features including forge-tasks, orchestra orchestration, agent namespacing, and many new agents. See [CHANGELOG-FROM-FORK.md](CHANGELOG-FROM-FORK.md) for details on what has changed.
+This project was originally forked from [johnlindquist/claude-workshop-live](https://github.com/johnlindquist/claude-workshop-live). It has since evolved significantly with new features including agent namespacing and many new agents. See [CHANGELOG-FROM-FORK.md](CHANGELOG-FROM-FORK.md) for details on what has changed.
 
 ## Prerequisites
 
@@ -143,14 +143,8 @@ Each agent is a specialized Claude instance with custom configurations:
 - **riff** - Design exploration through pseudo-code dialogue (language-agnostic)
 
 ### Coordination Agents
-- **orchestra** - Agent orchestration with pipelines and loops (see Orchestra section below)
 - **chain** - Chain multiple Claude instances (planner → contain)
-- **parallel** - Run parallel operations concurrently
 - **rails-backlog** - Rails Backlog Task Coordinator (analyze backlog.md + coordinate sub-agents)
-- **plan-coordinator** - Implementation Plan Coordinator (coordinate sub-agents step by step)
-- **forge-task-manager** - Digest plans/requirements into forge-tasks with labels
-- **forge-task-coordinator** - Coordinate sub-agents to implement forge-tasks
-- **forge-task-worker** - Work on a single forge-task, updating acceptance criteria
 
 ### Analysis & Research Agents
 - **orient** - Generates orientation maps for concepts, features, or files
@@ -165,116 +159,17 @@ Each agent is a specialized Claude instance with custom configurations:
 - **diagram-consolidate** - Verify, deduplicate, and bundle diagrams by topic
 
 ### Inference Agents (Gemini-powered)
-- **infer** - Infer commands or hooks from conversation history (supports modes: commands, hooks)
-- **infer-commands** - Extract commands from the latest conversation
 - **gemsum** - Gemini-powered summarization
 - **claude-video** - Gemini-powered video analysis and instruction extraction
 
 ### Utility Agents
 - **update-claudemd** - Maintain and update CLAUDE.md files following best practices
-- **claude-mix** - Repomix-focused flows for packing repos
 - **prompt-improver** - Turn prompts into three structured Markdown variations
-- **script-kit-gen** - Generate Script Kit scripts from ideas
 
 ### Developer Utilities
 - **latest** - Find and inspect the latest conversation
 - **search** - Search through conversation history
 - **list-mcp-tools** - List tools available from an MCP endpoint
-- **print-key** - Print GEMINI_API_KEY (helper utility)
-- **jsonl-formatter** - JSONL parsing utilities and jq recipes
-
-## Forge-Tasks: Hybrid Task Management
-
-A file-based task management system combining CLI commands with programmatic sub-agents for coordinated workflows. Tasks are stored as human-readable markdown files with YAML frontmatter.
-
-### Key Features
-
-- **File-based storage**: Tasks are markdown files in `forge/tasks/`, easy to edit manually or commit to git
-- **Full CLI interface**: Create, list, view, edit, delete, and search tasks from the command line
-- **Programmatic API**: TypeScript `TaskManager` class for building custom workflows
-- **Sub-agents**: Specialized `forge-task-manager` and `forge-task-worker` agents for automated task workflows
-- **Multiple output formats**: Human-readable, plain text (for scripts), and JSON
-
-### Quick Example
-
-```bash
-# Initialize forge-tasks in your project
-forge-tasks init
-
-# Create a task with acceptance criteria
-forge-tasks create "Implement user auth" \
-  --description "Add JWT-based authentication" \
-  --priority high \
-  --ac "Login returns JWT token" \
-  --ac "Protected routes require valid token"
-
-# List tasks, filter by status
-forge-tasks list --status todo --priority high
-
-# View task details (use --plain for scripts/agents)
-forge-tasks view TASK-001
-
-# Update status and check off acceptance criteria
-forge-tasks edit TASK-001 --status in-progress --check-ac 1
-```
-
-For complete documentation including programmatic usage and sub-agent integration, see **[docs/FORGE-TASKS.md](docs/FORGE-TASKS.md)**.
-
-## Orchestra: Agent Orchestration
-
-Orchestra orchestrates agent chains with two execution modes: pipeline (run once each) and loop (repeat until completion marker or max iterations).
-
-### Quick Example
-
-```bash
-# Single agent loop - run up to 10 iterations
-orchestra task-coordinator:10
-
-# Pipeline - run agents once each, in sequence
-orchestra "task-manager -> task-coordinator"
-
-# Chain with iterations
-orchestra "task-manager:3 -> task-coordinator:10"
-
-# Config mode - named chains from forge/chains.json
-orchestra --chain plan-and-build
-orchestra --chain single-task TASK_ID=TASK-001
-
-# With prompts - pass instructions to agents
-orchestra task-coordinator:10 -p "Focus on authentication tasks"
-orchestra --chain build --prompt-file prompts/instructions.md
-```
-
-### DSL Syntax
-
-| Pattern | Behavior |
-|---------|----------|
-| `agent` | Run once, no completion check |
-| `agent:N` | Loop up to N times, stop on `ORCHESTRA_COMPLETE` |
-| `a -> b` | Pipeline: run a then b (both once) |
-| `a:3 -> b:10` | Chain: a loops up to 3, then b loops up to 10 |
-
-### Configuration (forge/chains.json)
-
-```json
-{
-  "agents": {
-    "task-manager": { "defaultPrompt": "Create tasks from requirements" }
-  },
-  "chains": {
-    "plan-and-build": {
-      "description": "Plan then implement",
-      "prompt": "Focus on ${FEATURE_NAME}",
-      "steps": [
-        { "agent": "task-manager" },
-        { "agent": "task-coordinator", "iterations": 10 }
-      ]
-    }
-  }
-}
-```
-
-For complete documentation including prompt resolution and completion markers, see **[docs/ORCHESTRA.md](docs/ORCHESTRA.md)**.
 
 ---
 
@@ -301,9 +196,6 @@ bun run lint
 
 # Run type checking
 bun run check
-
-# Run the main entry point
-bun run index.ts
 ```
 
 ## Creating Your Own Agent
@@ -429,22 +321,10 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
   - Emits `<github_examples>` block with examples, comparisons, and path.
   - Use to discover patterns, validate approaches, or gather inspiration.
 
-- `claude-mix` (prompts/claude-mix.md)
-  - Repomix-focused flows for packing repos and generating analysis; structured outputs when saving/parsing.
-  - Use to produce compact repository representations for downstream LLMs.
-
 - `claude-video` / `gemsum`
   - Gemini-powered video analysis and summarization; `claude-video` can pass extracted instructions to Claude.
   - Requires `GEMINI_API_KEY`; writes outputs under `ai/claude-video` or `ai/gemsum`.
   - Use to extract comprehensive instructions or summaries from .mp4 content.
-
-- `jsonl-formatter(.ts/.tsx)`
-  - Runs Claude in JSONL print mode and demonstrates jq recipes to extract insights.
-  - Use to learn/automate JSONL parsing for costs, tools, models, content, and timelines.
-
-- `parallel`
-  - Splits a task into independent subtasks and runs them concurrently via Claude.
-  - Use to parallelize well-separated work items; be mindful of model cost.
 
 - `chain`
   - Runs `planner` to generate a plan and then launches `contain` with that plan preloaded.
@@ -464,16 +344,6 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
   - Handles task analysis, sub-agent coordination, lifecycle management, and Definition of Done verification.
   - Use for Rails projects with backlog-driven development workflows.
 
-- `plan-coordinator` (system-prompts/plan-coordinator-prompt.md)
-  - Implementation Plan Coordinator; takes a plan and coordinates sub-agents to execute each step.
-  - Handles plan parsing, progress tracking, and quality verification between steps.
-  - Use to execute multi-step plans with coordinated sub-agents.
-
-- `infer`
-  - Gemini-powered inference from conversation history; supports `--mode commands` or `--mode hooks`.
-  - Extracts user instructions into slash commands or identifies hook automation opportunities.
-  - Use to generate reusable commands/hooks from past conversations.
-
 - `design-audit` (system-prompts/design-audit-prompt.md)
   - Comprehensive design system/site styling audit; scans for tokens, variables, themes, layouts, patterns.
   - Writes navigable audit reports to `ai/design-audit/` without modifying app code.
@@ -482,10 +352,6 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
 - `prompt-improver` (system-prompts/prompt-improver-prompt.md)
   - Turns a provided prompt/spec into three structured Markdown variations with winner rationale.
   - Use to iterate on and improve prompts before use.
-
-- `script-kit-gen`
-  - Generates Script Kit scripts from ideas; writes to `~/.kenv/scripts/`.
-  - Use to quickly create automation scripts for Script Kit.
 
 - `expectations` (prompts/expectations.md)
   - Launches Claude with quality expectations system prompt.

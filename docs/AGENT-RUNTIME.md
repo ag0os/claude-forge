@@ -2,9 +2,9 @@
 
 ## Purpose
 
-We want a unified, backend-agnostic API for running agents so we can integrate Codex CLI now (and Codex SDK or other tools later) without rewriting every agent or orchestration path.
+We want a unified, backend-agnostic API for running agents so we can integrate Codex CLI now (and Codex SDK or other tools later) without rewriting every agent.
 
-Today, compiled agents and orchestra direct-spawn paths are tightly coupled to the Claude CLI. This document proposes a minimal abstraction layer that keeps current behavior stable while allowing backend selection at runtime.
+Today, compiled agents are tightly coupled to the Claude CLI. This document proposes a minimal abstraction layer that keeps current behavior stable while allowing backend selection at runtime.
 
 ## Goals
 
@@ -18,25 +18,22 @@ Today, compiled agents and orchestra direct-spawn paths are tightly coupled to t
 
 - Rewriting all agent logic or prompts.
 - Forcing a one-size-fits-all flag mapping across backends.
-- Replacing orchestration logic or changing the completion marker contract.
 
 ## Current State (Summary)
 
 - Compiled agents import `spawnClaudeAndWait` and `buildClaudeFlags`, hardcoding Claude CLI.
-- Orchestra supports direct spawn by calling Claude CLI with `--print` and `--append-system-prompt`.
-- Completion markers are detected in stdout streams for loop control.
 
 ## Proposed Abstractions
 
 ### 1) Agent Runtime Interface
 
-Create a small runtime interface used by both compiled agents and orchestra direct spawn.
+Create a small runtime interface used by compiled agents.
 
 **Intentional shape (example):**
 
 - `isAvailable(): Promise<boolean>`
 - `runOnce(options): Promise<{ exitCode: number; output?: string; structured?: object[] }>`
-- `runStreaming(options, callbacks): Promise<{ exitCode: number; markerDetected: boolean; structured?: object[] }>`
+- `runStreaming(options, callbacks): Promise<{ exitCode: number; structured?: object[] }>`
 - `runInteractive(options): Promise<{ exitCode: number }>`
 
 Key idea: backends implement the interface; callers do not hardcode the backend. If a backend does not support interactive or streaming, it should fail fast with a clear error and capability hints.
@@ -54,7 +51,7 @@ Add a registry or simple switch that maps `backend` to a concrete runner:
 Define a backend-agnostic options object that includes the common denominator of what we need:
 
 - `prompt` (positional or inline text)
-- `systemPrompt` (already used in direct spawn)
+- `systemPrompt`
 - `cwd`
 - `env`
 - `model`
@@ -76,20 +73,12 @@ Each backend can map or ignore unsupported fields explicitly. `providerOptions` 
 - Continue to accept existing Claude flags, but translate them into the unified options where possible.
 - Warn (or error) when Claude-specific flags are provided with non-Claude backends.
 
-### Orchestra Direct Spawn
-
-- Add `backend` on `AgentConfig` in `forge/orch/chains.json`.
-- Default to `claude-cli` if unspecified.
-- For `codex-cli`, compose system + user prompts and pass through the runtime layer.
-- For `codex-sdk` (future), restrict to non-interactive runs unless a REPL is implemented.
-
 ## Implementation Ideas
 
 ### Phase 1: Internal Runtime Abstraction
 
 - Extract Claude CLI logic into `lib/agent-runtime/claude-cli.ts`.
-- Implement the runtime interface and preserve current stdout streaming behavior for marker detection.
-- Update orchestra direct-spawn path to use the runtime abstraction.
+- Implement the runtime interface and preserve current stdout streaming behavior.
 - Keep binary agent path unchanged at this stage.
 
 ### Phase 2: Compiled Agents on the Runtime
@@ -109,7 +98,6 @@ Each backend can map or ignore unsupported fields explicitly. `providerOptions` 
 
 - Add `lib/agent-runtime/codex-sdk.ts` using `@openai/codex-sdk`.
 - Support non-interactive runs only unless we explicitly build a REPL.
-- Provide fallback marker detection based on final output if streaming is not available.
 
 ## Mapping Notes (Claude CLI -> Codex CLI/SDK)
 
@@ -131,14 +119,6 @@ Each backend can map or ignore unsupported fields explicitly. `providerOptions` 
 
 Each backend should declare capabilities (for example: supportsInteractive, supportsStreaming, supportsSystemPrompt). Runners should fail fast with a clear error if unsupported features are requested.
 
-## Completion Marker Contract
-
-Keep `ORCHESTRA_COMPLETE` as a backend-agnostic completion marker. The runtime should:
-
-- Detect it in streams when possible.
-- Otherwise detect it in the final output.
-- Never change the marker string without a migration plan.
-
 ## Risks and Decisions
 
 - **Flag incompatibility:** Not all flags map across backends; the runtime must be explicit about ignored options.
@@ -148,13 +128,12 @@ Keep `ORCHESTRA_COMPLETE` as a backend-agnostic completion marker. The runtime s
 ## Future Extensions
 
 - Add additional backends (Gemini CLI, local LLM) without rewriting agent code.
-- Allow per-agent backend and per-chain overrides in orchestra config.
+- Allow per-agent backend overrides.
 
 ## Testing Strategy
 
 - Unit-test the runtime abstraction with mock runners.
 - Add integration tests gated by environment variables for installed backends.
-- Reuse existing orchestra tests to validate marker detection and loop behavior.
 
 ## Error Handling
 
@@ -170,7 +149,6 @@ Keep `ORCHESTRA_COMPLETE` as a backend-agnostic completion marker. The runtime s
 
 ## Definition of Done
 
-- Orchestra direct spawn runs through the runtime interface.
 - Compiled agents support `--backend` and route through the runtime.
 - Claude CLI remains the default backend and behaves exactly as before.
-- Codex CLI can be selected for direct spawn and compiled agents.
+- Codex CLI can be selected for compiled agents.

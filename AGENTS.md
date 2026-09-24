@@ -3,10 +3,9 @@
 ## Project Structure & Module Organization
 
 - `agents/` — TypeScript agent launchers (one file per agent).
-- `cli/` — CLI entrypoints (e.g., `forge`, `orchestra`, `parallel`).
-- `lib/` — Shared utilities and orchestration logic.
-- `forge-tasks/` — Task system (core logic + tests).
-- `forge/` — Task files and orchestration configs (e.g., `chains.json`).
+- `cli/` — CLI entrypoints (e.g., `forge`).
+- `lib/` — Shared utilities and the backend runtime (`lib/runtime`).
+- `forge/` — Historical plans (`forge/plans/`).
 - `settings/`, `system-prompts/`, `prompts/` — Agent settings and prompt templates.
 - `scripts/` — Build/watch utilities.
 - `bin/` — Generated binaries (do not edit manually).
@@ -16,11 +15,11 @@
 
 - `bun install` — Install dependencies.
 - `bun run watch` — Watch and auto-compile agents into `bin/`.
-- `bun run compile:forge` / `bun run compile:orchestra` / `bun run compile:parallel` / `bun run compile:forge-tasks` — Build specific CLIs.
+- `bun run compile:all` — Rebuild every agent into `bin/` and prune orphaned binaries.
+- `bun run compile:forge` — Build the `forge` CLI.
 - `bun run lint` / `bun run format` — Lint and format with Biome.
 - `bun run check` / `bun run typecheck` — Static analysis and TypeScript checks.
-- `bun run test:forge-tasks` — Run forge-tasks tests.
-- `bun test lib/orchestra` — Run orchestration tests directly with Bun.
+- `bun test` — Run all tests.
 
 ## Coding Style & Naming Conventions
 
@@ -35,15 +34,14 @@
 ## Testing Guidelines
 
 - Test runner: `bun test`.
-- Tests live under `lib/orchestra/*.test.ts` and `forge-tasks/**.test.ts`.
+- Tests live next to the code they cover (e.g., `lib/runtime/*.test.ts`, `agents/tools/webfetch.test.ts`).
 - Add or update tests for behavior changes; no explicit coverage target is enforced.
 
 ## Commit & Pull Request Guidelines
 
 - Commit subjects are typically imperative and concise (e.g., “Add …”, “Fix …”).
-- Many commits use a task prefix like `TASK-034: …` when tied to a work item.
-- Keep commits focused; include relevant task IDs when available.
-- PRs should include a brief summary, verification notes (commands run), and links to related tasks or docs (e.g., `forge/tasks/...`).
+- Keep commits focused.
+- PRs should include a brief summary, verification notes (commands run), and links to related docs.
 
 ## Security & Configuration Notes
 

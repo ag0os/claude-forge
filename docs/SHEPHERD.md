@@ -66,4 +66,4 @@ The launcher pre approves Read/Write/Edit inside `.shepherd/` and `Bash(herdr:*)
 
 ## Backends
 
-Shepherd spawns through `lib/runtime` (see [AGENT-RUNTIME.md](AGENT-RUNTIME.md)). Default is `claude-cli`; `codex-cli` supports interactive sessions with the system prompt prepended; `codex-sdk` falls back to print mode. Claude specific options (settings, MCP config, flag passthrough) are only sent to `claude-cli`.
+Shepherd spawns through `lib/runtime` (see [AGENT-RUNTIME.md](AGENT-RUNTIME.md)). Default is `claude-cli`; `codex-cli` supports interactive sessions and passes the system prompt as `--config base_instructions=...` (recent codex releases may ignore it, so Shepherd can run without its prompt there); `codex-sdk` falls back to print mode. Claude specific options (settings, MCP config, flag passthrough) are only sent to `claude-cli`.
