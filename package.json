@@ -6,7 +6,6 @@
   "scripts": {
     "compile": "bun scripts/compile.ts",
     "compile:all": "bun scripts/compile-all.ts",
-    "compile:forge": "bun build cli/forge.ts --compile --outfile bin/forge",
     "watch": "bun scripts/watch-agents.ts",
     "lint": "biome check --write .",
     "format": "biome format --write .",

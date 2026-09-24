@@ -17,8 +17,6 @@ import SP_tdd_coordinator from '../system-prompts/tdd-coordinator-prompt.md' wit
 import SP_prompt_improver from '../system-prompts/prompt-improver-prompt.md' with { type: 'text' }
 import SP_rails_backlog_coordinator from '../system-prompts/rails-backlog-coordinator-prompt.md' with { type: 'text' }
 import SP_diagram_all from '../system-prompts/diagram-all-prompt.md' with { type: 'text' }
-import SP_fix from '../system-prompts/fix-prompt.md' with { type: 'text' }
-import SP_feature from '../system-prompts/feature-prompt.md' with { type: 'text' }
 import ST_contain from '../settings/contain.settings.json' with { type: 'json' }
 import ST_refactor from '../settings/refactor.settings.json' with { type: 'json' }
 import ST_orient from '../settings/orient.settings.json' with { type: 'json' }
@@ -29,18 +27,15 @@ import ST_webfetch from '../settings/webfetch.settings.json' with { type: 'json'
 import ST_diagram_topic from '../settings/diagram-topic.settings.json' with { type: 'json' }
 import ST_design_audit from '../settings/design-audit.settings.json' with { type: 'json' }
 import ST_pr_review from '../settings/pr-review.settings.json' with { type: 'json' }
-import ST_planner from '../settings/planner.settings.json' with { type: 'json' }
 import ST_designer from '../settings/designer.settings.json' with { type: 'json' }
 import ST_tdd_coordinator from '../settings/tdd-coordinator.settings.json' with { type: 'json' }
 import ST_rails_backlog from '../settings/rails-backlog.settings.json' with { type: 'json' }
 import ST_diagram_consolidate from '../settings/diagram-consolidate.settings.json' with { type: 'json' }
 import MCP_designer from '../settings/designer.mcp.json' with { type: 'json' }
-import MCP_orient from '../settings/orient.mcp.json' with { type: 'json' }
 import MCP_contain from '../settings/contain.mcp.json' with { type: 'json' }
 import MCP_rails_backlog from '../settings/rails-backlog.mcp.json' with { type: 'json' }
 import MCP_refactor from '../settings/refactor.mcp.json' with { type: 'json' }
 import MCP_builder from '../settings/builder.mcp.json' with { type: 'json' }
-import MCP_planner from '../settings/planner.mcp.json' with { type: 'json' }
 import MCP_tdd_coordinator from '../settings/tdd-coordinator.mcp.json' with { type: 'json' }
 
 export const SYSTEM_PROMPTS = {
@@ -51,8 +46,6 @@ export const SYSTEM_PROMPTS = {
   'diagram-all': SP_diagram_all,
   'diagram-consolidate': SP_diagram_consolidate,
   'diagram-topic': SP_diagram_topic,
-  'feature': SP_feature,
-  'fix': SP_fix,
   'orient': SP_orient,
   'planner': SP_planner,
   'pr-review': SP_pr_review,
@@ -75,7 +68,6 @@ export const SETTINGS = {
   'diagram-consolidate': ST_diagram_consolidate,
   'diagram-topic': ST_diagram_topic,
   'orient': ST_orient,
-  'planner': ST_planner,
   'pr-review': ST_pr_review,
   'rails-backlog': ST_rails_backlog,
   'refactor': ST_refactor,
@@ -86,8 +78,6 @@ export const MCP = {
   'builder': MCP_builder,
   'contain': MCP_contain,
   'designer': MCP_designer,
-  'orient': MCP_orient,
-  'planner': MCP_planner,
   'rails-backlog': MCP_rails_backlog,
   'refactor': MCP_refactor,
   'tdd-coordinator': MCP_tdd_coordinator
