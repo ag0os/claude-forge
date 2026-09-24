@@ -126,7 +126,6 @@ bun run agents/designer.ts "Design a color palette for a tech startup"
 - `settings/` - JSON configuration files for agents
 - `system-prompts/` - System prompts for specialized behaviors
 - `prompts/` - Markdown prompt templates
-- `hooks/` - Scripts that run in response to Claude events
 - `lib/` - Core utilities for Claude CLI interaction
 - `scripts/` - Build and development utilities
 
@@ -148,28 +147,16 @@ Each agent is a specialized Claude instance with custom configurations:
 
 ### Analysis & Research Agents
 - **orient** - Generates orientation maps for concepts, features, or files
-- **brainstorm** - Generate 5 AI agent variations from your idea and select one
 - **design-audit** - Comprehensive design system/site styling audit
 - **github-examples** - Search GitHub for real-world examples and patterns
-- **expectations** - Launch Claude with quality expectations system prompt
 
 ### Diagram Agents
 - **diagram-all** - Project-wide, exhaustive event flow diagram generator
 - **diagram-topic** - Generate diagrams limited to a single topic
 - **diagram-consolidate** - Verify, deduplicate, and bundle diagrams by topic
 
-### Inference Agents (Gemini-powered)
-- **gemsum** - Gemini-powered summarization
-- **claude-video** - Gemini-powered video analysis and instruction extraction
-
 ### Utility Agents
-- **update-claudemd** - Maintain and update CLAUDE.md files following best practices
 - **prompt-improver** - Turn prompts into three structured Markdown variations
-
-### Developer Utilities
-- **latest** - Find and inspect the latest conversation
-- **search** - Search through conversation history
-- **list-mcp-tools** - List tools available from an MCP endpoint
 
 ---
 
@@ -266,7 +253,7 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
 
 ### Common Prompt Expectations
 - Private scratchpad: agents think step-by-step privately; outputs contain results and rationale only (no chain-of-thought).
-- Structured outputs: agents emit XML-like tagged blocks per turn (e.g., `<turn>`, `<options>`, `<verification>`, `<commit>`, `<next>`) or domain blocks like `<orientation>`, `<planning>`, `<claude_md_update>`, `<github_examples>`, `<brainstorm>`.
+- Structured outputs: agents emit XML-like tagged blocks per turn (e.g., `<turn>`, `<options>`, `<verification>`, `<commit>`, `<next>`) or domain blocks like `<orientation>`, `<planning>`, `<github_examples>`.
 - Code fences: labeled with language and a filename comment; changes are minimal and reversible.
 - Tool safety: read before edit; avoid destructive commands; never expose secrets.
 - Decision loops: many prompts present EXACTLY 3 options and block for a `1/2/3` selection or a minimal modification.
@@ -287,20 +274,7 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
   - `<turn>` with options, parity verification, commit message, churn limits.
   - Use to pay down tech debt without changing behavior.
 
-- `feature` (system-prompts/feature-prompt.md)
-  - Turn a dictated feature into shippable code with verifiable acceptance criteria.
-  - 3 options per step; `<turn>` includes verification plan before implementation.
-  - Use for net-new functionality from a narrative or user story.
-
-- `fix` (system-prompts/fix-prompt.md)
-  - Bug remediation with mandatory failing test before patch; `<turn>` format.
-  - Use for reliable, test-first bug fixes with guardrails.
-
-- `performance-tuner` (system-prompts/performance-tuner.md)
-  - Set targets, capture baselines, then smallest safe optimizations with measurement plan.
-  - Use for performance work where reproducibility matters.
-
-- `planner` (system-prompts/plan-generator.md)
+- `planner` (system-prompts/planner-prompt.md)
   - Proposes plans only; does not implement code. Produces `<planning>` with options and a commit/file-specific plan.
   - Use to converge on an actionable plan before starting work; can be chained.
 
@@ -308,23 +282,10 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
   - Orientation analysis with `<orientation>` output: overview, structure, tech, commands, workflow, recent, next.
   - Use when onboarding to a repo or scoping a change area.
 
-- `update-claudemd` (system-prompts/update-claudemd-prompt.md)
-  - Maintains CLAUDE.md; emits `<claude_md_update>` with summary/diff/updated file/verification.
-  - Use to create or refresh project memory for Claude Code.
-
-- `brainstorm` (system-prompts/brainstorm-prompt.md)
-  - Generates 5 distinct agent ideas; `<brainstorm>` with `<ideas>` and a recommendation.
-  - Use for ideation before committing to an approach.
-
 - `github-examples` (prompts/github-examples.md)
   - Searches GitHub for real-world examples and writes `ai/github-examples/<slug>.md`.
   - Emits `<github_examples>` block with examples, comparisons, and path.
   - Use to discover patterns, validate approaches, or gather inspiration.
-
-- `claude-video` / `gemsum`
-  - Gemini-powered video analysis and summarization; `claude-video` can pass extracted instructions to Claude.
-  - Requires `GEMINI_API_KEY`; writes outputs under `ai/claude-video` or `ai/gemsum`.
-  - Use to extract comprehensive instructions or summaries from .mp4 content.
 
 - `chain`
   - Runs `planner` to generate a plan and then launches `contain` with that plan preloaded.
@@ -353,21 +314,7 @@ This repo ships multiple focused agents wired to well-structured prompts. The pr
   - Turns a provided prompt/spec into three structured Markdown variations with winner rationale.
   - Use to iterate on and improve prompts before use.
 
-- `expectations` (prompts/expectations.md)
-  - Launches Claude with quality expectations system prompt.
-  - Use to enforce quality standards in Claude sessions.
-
-- `list-mcp-tools`
-  - Lists tools available from an MCP endpoint via HTTP POST or CLI.
-  - Supports authenticated endpoints with `--token` flag.
-  - Use to discover available tools from MCP servers.
-
-- Conversation utilities: `latest`, `search`, `conv`
-  - Map current repo to `~/.claude/projects` and inspect/export JSONL conversations.
-  - Use to quickly find and export past sessions or generate transcripts.
-
 ### Credentials & Tools
-- Gemini features require `GEMINI_API_KEY` in the environment.
 - Some agents fetch secrets via 1Password CLI (`op`)—ensure you’re signed in.
 - GitHub MCP usage requires a valid token (see agents/github-examples.ts notes).
 

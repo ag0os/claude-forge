@@ -3,7 +3,6 @@
 ## Project Structure & Module Organization
 
 - `agents/` — TypeScript agent launchers (one file per agent).
-- `cli/` — CLI entrypoints (e.g., `forge`).
 - `lib/` — Shared utilities and the backend runtime (`lib/runtime`).
 - `forge/` — Historical plans (`forge/plans/`).
 - `settings/`, `system-prompts/`, `prompts/` — Agent settings and prompt templates.
@@ -16,7 +15,6 @@
 - `bun install` — Install dependencies.
 - `bun run watch` — Watch and auto-compile agents into `bin/`.
 - `bun run compile:all` — Rebuild every agent into `bin/` and prune orphaned binaries.
-- `bun run compile:forge` — Build the `forge` CLI.
 - `bun run lint` / `bun run format` — Lint and format with Biome.
 - `bun run check` / `bun run typecheck` — Static analysis and TypeScript checks.
 - `bun test` — Run all tests.
@@ -45,5 +43,5 @@
 
 ## Security & Configuration Notes
 
-- Store secrets in environment variables (e.g., `GEMINI_API_KEY`); never commit credentials.
+- Store secrets in environment variables (e.g., API keys and tokens); never commit credentials.
 - Agent behavior is controlled via `settings/`, `system-prompts/`, and `prompts/`; update those alongside agent code when necessary.

@@ -26,7 +26,6 @@ Claude Forge - A collection of TypeScript agents and utilities for enhancing Cla
 - `settings/` - JSON configuration files for different agent modes (MCP configs and settings)
 - `prompts/` - Markdown prompt templates for various use cases
 - `system-prompts/` - System prompts for specialized behaviors
-- `hooks/` - Type-safe hook scripts that run in response to Claude events (see [docs/HOOKS.md](docs/HOOKS.md))
 - `scripts/` - Build and development utilities
 - `bin/` - Compiled binaries (generated)
 - `docs/` - Documentation for framework features
@@ -52,7 +51,7 @@ Agents are namespaced via subdirectories. The directory structure determines the
 - Agents use `spawn()` to launch Claude CLI with custom settings
 - Settings and MCP configs are stored as JSON in `settings/`
 - Use `resolvePath()` pattern for resolving relative paths in agents
-- `CLAUDE_FORGE_DIR` is automatically set to the framework root (use in hooks)
+- `CLAUDE_FORGE_DIR` is automatically set to the framework root
 - `CLAUDE_PROJECT_DIR` points to the target project directory
 - Always handle SIGINT/SIGTERM for clean subprocess termination
 - When working with containers, always merge changes back with `container-use merge <branch-name>`
@@ -74,4 +73,3 @@ Agents are namespaced via subdirectories. The directory structure determines the
 - The project uses TypeScript with module syntax
 - Agents are designed to be compiled to standalone binaries with `bun compile`
 - Settings files follow the pattern: `<agent-name>.settings.json` and `<agent-name>.mcp.json`
-- Hooks are type-safe TypeScript scripts - see [docs/HOOKS.md](docs/HOOKS.md) for complete guide
