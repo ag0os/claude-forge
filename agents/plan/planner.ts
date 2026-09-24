@@ -4,7 +4,7 @@
  * PLANNER: Interactive implementation plan creator
  *
  * Creates high-level implementation plans through interactive requirements
- * gathering. Plans are consumed by coordinator agents (builder, plan-coordinator).
+ * gathering. Plans are consumed by coordinator agents (such as builder).
  *
  * Usage:
  *   bun run agents/planner.ts                    # interactive mode

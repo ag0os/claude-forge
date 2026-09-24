@@ -21,14 +21,12 @@ import SP_rails_backlog_coordinator from '../system-prompts/rails-backlog-coordi
 import SP_diagram_all from '../system-prompts/diagram-all-prompt.md' with { type: 'text' }
 import SP_fix from '../system-prompts/fix-prompt.md' with { type: 'text' }
 import SP_feature from '../system-prompts/feature-prompt.md' with { type: 'text' }
-import SP_plan_coordinator from '../system-prompts/plan-coordinator-prompt.md' with { type: 'text' }
 import ST_contain from '../settings/contain.settings.json' with { type: 'json' }
 import ST_refactor from '../settings/refactor.settings.json' with { type: 'json' }
 import ST_orient from '../settings/orient.settings.json' with { type: 'json' }
 import ST_update_claudemd from '../settings/update-claudemd.settings.json' with { type: 'json' }
 import ST_comment_review from '../settings/comment-review.settings.json' with { type: 'json' }
 import ST_builder from '../settings/builder.settings.json' with { type: 'json' }
-import ST_plan_coordinator from '../settings/plan-coordinator.settings.json' with { type: 'json' }
 import ST_brainstorm from '../settings/brainstorm.settings.json' with { type: 'json' }
 import ST_diagram_all from '../settings/diagram-all.settings.json' with { type: 'json' }
 import ST_webfetch from '../settings/webfetch.settings.json' with { type: 'json' }
@@ -47,7 +45,6 @@ import MCP_contain from '../settings/contain.mcp.json' with { type: 'json' }
 import MCP_rails_backlog from '../settings/rails-backlog.mcp.json' with { type: 'json' }
 import MCP_refactor from '../settings/refactor.mcp.json' with { type: 'json' }
 import MCP_builder from '../settings/builder.mcp.json' with { type: 'json' }
-import MCP_plan_coordinator from '../settings/plan-coordinator.mcp.json' with { type: 'json' }
 import MCP_planner from '../settings/planner.mcp.json' with { type: 'json' }
 import MCP_update_claudemd from '../settings/update-claudemd.mcp.json' with { type: 'json' }
 import MCP_tdd_coordinator from '../settings/tdd-coordinator.mcp.json' with { type: 'json' }
@@ -64,7 +61,6 @@ export const SYSTEM_PROMPTS = {
   'feature': SP_feature,
   'fix': SP_fix,
   'orient': SP_orient,
-  'plan-coordinator': SP_plan_coordinator,
   'planner': SP_planner,
   'pr-review': SP_pr_review,
   'prompt-improver': SP_prompt_improver,
@@ -88,7 +84,6 @@ export const SETTINGS = {
   'diagram-consolidate': ST_diagram_consolidate,
   'diagram-topic': ST_diagram_topic,
   'orient': ST_orient,
-  'plan-coordinator': ST_plan_coordinator,
   'planner': ST_planner,
   'pr-review': ST_pr_review,
   'rails-backlog': ST_rails_backlog,
@@ -103,7 +98,6 @@ export const MCP = {
   'contain': MCP_contain,
   'designer': MCP_designer,
   'orient': MCP_orient,
-  'plan-coordinator': MCP_plan_coordinator,
   'planner': MCP_planner,
   'rails-backlog': MCP_rails_backlog,
   'refactor': MCP_refactor,
