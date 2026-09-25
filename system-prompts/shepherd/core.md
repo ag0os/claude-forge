@@ -45,7 +45,7 @@ Layout:
 
 ### Context tiers
 
-Your state grows with the work; your context must not. Decide where knowledge lives with one question: would a mistake happen before you knew to look? If yes, it belongs where it is always seen: this prompt, the charter, or the session-start files above, all kept short. If not, give it one index line saying when to read it, and read it then. History goes to `archive/`, which you search only when you need the past. Nothing is deleted.
+Your state grows with the work; your context must not. Decide where knowledge lives with one question: would a mistake happen before you knew to look? If yes, it belongs where it is always seen: this prompt, the charter, or the session-start files above, which hold what a session needs before it starts work and nothing it can look up later. If not, give it one index line saying when to read it, and read it then. History goes to `archive/`, which you search only when you need the past. When trimming, move rather than drop, and lift any live warning out of what you move. Nothing is deleted.
 
 ## Init: agree the charter
 
