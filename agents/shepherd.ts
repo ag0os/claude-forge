@@ -11,9 +11,12 @@
  *   1. core.md                — identity, workspace protocol, init, self-evolution
  *   2. integrations/*.md      — built-in capability modules (Herdr, inter-agent
  *                               messaging), each self-gated by an availability check
- *   3. .shepherd/charter.md   — the workspace's agreed mission and way of working,
+ *   3. inherited modules      — the integrations/*.md of the nearest enclosing
+ *                               workspace (a parent directory with its own
+ *                               .shepherd/), shared by every workspace beneath it
+ *   4. .shepherd/charter.md   — the workspace's agreed mission and way of working,
  *                               written during the init conversation
- *   4. .shepherd/integrations/*.md — workspace-local modules appended at launch,
+ *   5. .shepherd/integrations/*.md — workspace-local modules appended at launch,
  *                               so a directory can extend Shepherd without a recompile
  *
  * Harness agnostic: spawns through lib/runtime, so the backend is selected with
@@ -29,8 +32,8 @@
  *   bun run agents/shepherd.ts --show-prompt            # print composed prompt, don't spawn
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import {
 	getBackend,
 	getPositionals,
@@ -62,30 +65,41 @@ const FORGE_LEVEL_FLAGS = ["backend", "cwd", "print", "show-prompt", "model"];
  * State-dir file ops are pre-approved so memory and journal upkeep never
  * prompt. `herdr` is pre-approved because coordinating panes and agents is
  * Shepherd's core duty; destructive Herdr commands are forbidden by the
- * integration module instead.
+ * integration module instead. An enclosing workspace's state dir is added as
+ * a readable directory, since its modules point at files there; Claude Code
+ * checks permissions against resolved paths, so this can't ride on the
+ * relative rules above.
  */
-const shepherdSettings = {
-	permissions: {
-		defaultMode: "default",
-		allow: [
-			`Read(${STATE_DIR}/**)`,
-			`Write(${STATE_DIR}/**)`,
-			`Edit(${STATE_DIR}/**)`,
-			"Bash(herdr:*)",
-		],
-	},
-};
+function shepherdSettings(enclosing: string | undefined) {
+	const allow = [
+		`Read(${STATE_DIR}/**)`,
+		`Write(${STATE_DIR}/**)`,
+		`Edit(${STATE_DIR}/**)`,
+		"Bash(herdr:*)",
+	];
+	const shared = enclosing ? join(enclosing, STATE_DIR) : undefined;
+	if (shared) allow.push(`Read(/${shared}/**)`);
+	return {
+		permissions: {
+			defaultMode: "default",
+			allow,
+			...(shared ? { additionalDirectories: [shared] } : {}),
+		},
+	};
+}
 
 const shepherdMcp = {
 	mcpServers: {},
 };
 
+type Module = { name: string; body: string; path: string };
+
 /**
- * Workspace-local capability modules, appended after the built-ins so a
- * directory can extend or override Shepherd's behavior without a recompile.
+ * Capability modules in a workspace's integrations dir: workspace-local ones
+ * for the launch directory, inherited ones for an enclosing workspace.
  */
-function loadLocalIntegrations(cwd: string): { name: string; body: string }[] {
-	const dir = join(cwd, STATE_DIR, "integrations");
+function loadIntegrations(root: string): Module[] {
+	const dir = join(root, STATE_DIR, "integrations");
 	if (!existsSync(dir)) return [];
 	return readdirSync(dir)
 		.filter((file) => file.endsWith(".md"))
@@ -93,7 +107,20 @@ function loadLocalIntegrations(cwd: string): { name: string; body: string }[] {
 		.map((file) => ({
 			name: file,
 			body: readFileSync(join(dir, file), "utf8"),
+			path: realpathSync(join(dir, file)),
 		}));
+}
+
+/**
+ * The nearest parent directory that is itself a Shepherd workspace. Its
+ * modules apply to every workspace beneath it, which is how a group of
+ * workspaces shares one layer of conventions without copying it.
+ */
+function findEnclosingWorkspace(cwd: string): string | undefined {
+	for (let dir = dirname(cwd); dir !== dirname(dir); dir = dirname(dir)) {
+		if (existsSync(join(dir, STATE_DIR))) return dir;
+	}
+	return undefined;
 }
 
 /**
@@ -106,9 +133,19 @@ function loadCharter(cwd: string): string | undefined {
 	return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 }
 
-function composeSystemPrompt(cwd: string, backend: string): string {
+function composeSystemPrompt(
+	cwd: string,
+	backend: string,
+	enclosing: string | undefined,
+): string {
 	const charter = loadCharter(cwd);
-	const locals = loadLocalIntegrations(cwd);
+	const inherited = enclosing ? loadIntegrations(enclosing) : [];
+	// A local module that is the same file as an inherited one (a leftover
+	// symlink, say) would load twice.
+	const inheritedPaths = new Set(inherited.map((m) => m.path));
+	const locals = loadIntegrations(cwd).filter(
+		(m) => !inheritedPaths.has(m.path),
+	);
 	const header = [
 		"# Shepherd session context",
 		"",
@@ -116,6 +153,9 @@ function composeSystemPrompt(cwd: string, backend: string): string {
 		`- State directory: ${join(cwd, STATE_DIR)}`,
 		`- Date: ${new Date().toISOString().slice(0, 10)}`,
 		`- Backend: ${backend}`,
+		enclosing
+			? `- Enclosing workspace: ${enclosing} (inherited integrations: ${inherited.map((m) => m.name).join(", ") || "none"})`
+			: "- Enclosing workspace: none",
 		charter
 			? "- Charter: loaded"
 			: "- Charter: none, this workspace is uninitiated",
@@ -127,6 +167,7 @@ function composeSystemPrompt(cwd: string, backend: string): string {
 	return [
 		coreDoc,
 		...BUILT_IN_INTEGRATIONS,
+		...inherited.map((m) => m.body),
 		...(charter ? [charter] : []),
 		...locals.map((l) => l.body),
 		header,
@@ -157,7 +198,8 @@ async function main() {
 		? resolve(String(parsedArgs.values.cwd))
 		: process.cwd();
 	const prompt = getPositionals().join(" ").trim() || undefined;
-	const systemPrompt = composeSystemPrompt(cwd, backend);
+	const enclosing = findEnclosingWorkspace(cwd);
+	const systemPrompt = composeSystemPrompt(cwd, backend, enclosing);
 
 	if (parsedArgs.values["show-prompt"] === true) {
 		console.log(systemPrompt);
@@ -173,7 +215,7 @@ async function main() {
 		model: parsedArgs.values.model as string | undefined,
 		...(backend === "claude-cli"
 			? {
-					settings: JSON.stringify(shepherdSettings),
+					settings: JSON.stringify(shepherdSettings(enclosing)),
 					mcpConfig: JSON.stringify(shepherdMcp),
 					rawArgs: passthroughArgs(),
 				}

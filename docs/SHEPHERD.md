@@ -25,9 +25,12 @@ The session prompt is layered, in order:
 |-------|--------|----------|
 | Core | `system-prompts/shepherd/core.md` | yes |
 | Built in integrations | `system-prompts/shepherd/integrations/*.md` | yes |
+| Inherited integrations | `.shepherd/integrations/*.md` of the nearest enclosing workspace (a parent directory with its own `.shepherd/`) | no, read at launch |
 | Workspace charter | `.shepherd/charter.md` in the launch directory | no, read at launch |
 | Workspace integrations | `.shepherd/integrations/*.md` in the launch directory | no, read at launch |
 | Session context header | generated (cwd, state dir, date, backend, charter status, loaded modules) | no |
+
+An enclosing workspace lets a group of workspaces share one layer: put them in subdirectories of a workspace whose `integrations/` holds the shared modules, and each one inherits them, with no copies or links. The launcher also adds that workspace's `.shepherd/` as a readable directory, so the modules can point at reference files there. A local module that resolves to the same file as an inherited one is skipped.
 
 Every integration module is self gated: it declares how to detect availability (for example `HERDR_ENV=1`, or the presence of messaging tools) and Shepherd skips the capability cleanly when the check fails. That is what keeps the prompt harness agnostic.
 
@@ -55,14 +58,19 @@ Shepherd maintains `.shepherd/` in the launch directory:
 ```
 .shepherd/
   charter.md         # agreed mission and way of working, written at init
+  CURRENT.md         # index of in-flight work
+  work/              # todo/ in-progress/ done/, one dir per item
   MEMORY.md          # index: one line per memory
   memories/          # one fact per file (frontmatter: name, description, type)
-  journal.md         # append only session log and handoff
-  docs/              # runbooks, environment notes, agent rosters
+  journal.md         # append only session log and handoff, current month
+  docs/              # runbooks, environment notes, agent rosters; INDEX.md lists them
+  archive/           # closed work and past journal months; INDEX.md lists them
   integrations/      # workspace local capability modules
 ```
 
-The launcher pre approves Read/Write/Edit inside `.shepherd/` and `Bash(herdr:*)` so memory upkeep and Herdr coordination never prompt; destructive Herdr operations are forbidden by the integration module instead. Everything else follows normal permission rules.
+Context is tiered (see core, "Context tiers"): the prompt and a short session-start list (`CURRENT.md`, `MEMORY.md`, `docs/INDEX.md`, the journal's last two days) are always read; everything else is reached through those indexes when needed, and history moves to `archive/`.
+
+The launcher pre approves Read/Write/Edit inside `.shepherd/`, Read inside an enclosing workspace's `.shepherd/`, and `Bash(herdr:*)` so memory upkeep and Herdr coordination never prompt; destructive Herdr operations are forbidden by the integration module instead. Everything else follows normal permission rules.
 
 ## Backends
 
